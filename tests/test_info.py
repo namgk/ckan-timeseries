@@ -10,8 +10,8 @@ import ckan.lib.create_test_data as ctd
 import ckan.model as model
 from ckan.tests.legacy import is_datastore_supported
 
-import ckanext.datastore.db as db
-from ckanext.datastore.tests.helpers import extract, rebuild_all_dbs
+import ckanext.datastore_ts.db as db
+from ckanext.datastore_ts.tests.helpers import extract, rebuild_all_dbs
 
 import ckan.tests.helpers as helpers
 import ckan.tests.factories as factories

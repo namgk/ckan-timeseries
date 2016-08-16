@@ -17,12 +17,12 @@ class TestDisable(object):
 
     @t.raises(KeyError)
     def test_disable_sql_search(self):
-        config['ckan.datastore.sqlsearch.enabled'] = False
+        config['ckan.datastore_ts.sqlsearch.enabled'] = False
         with p.use_plugin('datastore') as the_plugin:
             print p.toolkit.get_action('datastore_search_sql')
-        config['ckan.datastore.sqlsearch.enabled'] = True
+        config['ckan.datastore_ts.sqlsearch.enabled'] = True
 
     def test_enabled_sql_search(self):
-        config['ckan.datastore.sqlsearch.enabled'] = True
+        config['ckan.datastore_ts.sqlsearch.enabled'] = True
         with p.use_plugin('datastore') as the_plugin:
             p.toolkit.get_action('datastore_search_sql')

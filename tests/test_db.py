@@ -7,13 +7,13 @@ import ckan.plugins as p
 import ckan.tests.helpers as helpers
 import ckan.tests.factories as factories
 
-import ckanext.datastore.db as db
+import ckanext.datastore_ts.db as db
 
 assert_equal = nose.tools.assert_equal
 
 
 class TestCreateIndexes(object):
-    @helpers.change_config('ckan.datastore.default_fts_index_method', None)
+    @helpers.change_config('ckan.datastore_ts.default_fts_index_method', None)
     def test_creates_fts_index_using_gist_by_default(self):
         connection = mock.MagicMock()
         context = {
@@ -29,7 +29,7 @@ class TestCreateIndexes(object):
         self._assert_created_index_on('_full_text', connection, resource_id,
                                       method='gist')
 
-    @helpers.change_config('ckan.datastore.default_fts_index_method', 'gin')
+    @helpers.change_config('ckan.datastore_ts.default_fts_index_method', 'gin')
     def test_default_fts_index_method_can_be_overwritten_by_config_var(self):
         connection = mock.MagicMock()
         context = {
@@ -45,8 +45,8 @@ class TestCreateIndexes(object):
         self._assert_created_index_on('_full_text', connection, resource_id,
                                       method='gin')
 
-    @helpers.change_config('ckan.datastore.default_fts_lang', None)
-    @mock.patch('ckanext.datastore.db._get_fields')
+    @helpers.change_config('ckan.datastore_ts.default_fts_lang', None)
+    @mock.patch('ckanext.datastore_ts.db._get_fields')
     def test_creates_fts_index_on_all_fields_except_dates_nested_and_arrays_with_english_as_default(self, _get_fields):
         _get_fields.return_value = [
             {'id': 'text', 'type': 'text'},
@@ -70,8 +70,8 @@ class TestCreateIndexes(object):
         self._assert_created_index_on('text', connection, resource_id, 'english')
         self._assert_created_index_on('number', connection, resource_id, 'english', cast=True)
 
-    @helpers.change_config('ckan.datastore.default_fts_lang', 'simple')
-    @mock.patch('ckanext.datastore.db._get_fields')
+    @helpers.change_config('ckan.datastore_ts.default_fts_lang', 'simple')
+    @mock.patch('ckanext.datastore_ts.db._get_fields')
     def test_creates_fts_index_on_textual_fields_can_overwrite_lang_with_config_var(self, _get_fields):
         _get_fields.return_value = [
             {'id': 'foo', 'type': 'text'},
@@ -89,8 +89,8 @@ class TestCreateIndexes(object):
 
         self._assert_created_index_on('foo', connection, resource_id, 'simple')
 
-    @helpers.change_config('ckan.datastore.default_fts_lang', 'simple')
-    @mock.patch('ckanext.datastore.db._get_fields')
+    @helpers.change_config('ckan.datastore_ts.default_fts_lang', 'simple')
+    @mock.patch('ckanext.datastore_ts.db._get_fields')
     def test_creates_fts_index_on_textual_fields_can_overwrite_lang_using_lang_param(self, _get_fields):
         _get_fields.return_value = [
             {'id': 'foo', 'type': 'text'},
@@ -129,7 +129,7 @@ class TestCreateIndexes(object):
                             "called with a string containing '%s'" % sql_str)
 
 
-@mock.patch("ckanext.datastore.db._get_fields")
+@mock.patch("ckanext.datastore_ts.db._get_fields")
 def test_upsert_with_insert_method_and_invalid_data(
         mock_get_fields_function):
     """upsert_data() should raise InvalidDataError if given invalid data.

@@ -16,8 +16,8 @@ import ckan.config.middleware as middleware
 import ckan.tests.helpers as helpers
 import ckan.tests.factories as factories
 
-import ckanext.datastore.db as db
-from ckanext.datastore.tests.helpers import rebuild_all_dbs, set_url_type
+import ckanext.datastore_ts.db as db
+from ckanext.datastore_ts.tests.helpers import rebuild_all_dbs, set_url_type
 
 
 # avoid hanging tests https://github.com/gabrielfalcao/HTTPretty/issues/34
@@ -185,7 +185,7 @@ class TestDatastoreCreateNewTests(object):
 
     def _execute_sql(self, sql, *args):
         engine = db._get_engine(
-            {'connection_url': pylons.config['ckan.datastore.write_url']})
+            {'connection_url': pylons.config['ckan.datastore_ts.write_url']})
         session = orm.scoped_session(orm.sessionmaker(bind=engine))
         return session.connection().execute(sql, *args)
 
@@ -247,7 +247,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
         engine = db._get_engine(
-            {'connection_url': pylons.config['ckan.datastore.write_url']})
+            {'connection_url': pylons.config['ckan.datastore_ts.write_url']})
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
         set_url_type(
             model.Package.get('annakarenina').resources, cls.sysadmin_user)

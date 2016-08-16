@@ -3,7 +3,7 @@ import nose.tools
 import pyutilib.component.core
 
 import ckan.plugins
-#import ckanext.datastore.plugin as plugin
+#import ckanext.datastore_ts.plugin as plugin
 
 
 class _TestConfiguration(unittest.TestCase):
@@ -23,7 +23,7 @@ class _TestConfiguration(unittest.TestCase):
     def test_set_legacy_mode(self):
         c = {
             'sqlalchemy.url': 'bar',
-            'ckan.datastore.write_url': 'foo'
+            'ckan.datastore_ts.write_url': 'foo'
         }
         try:
             self.p.configure(c)

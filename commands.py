@@ -12,8 +12,8 @@ def _abort(message):
 
 
 def _set_permissions(args):
-    write_url = cli.parse_db_config('ckan.datastore.write_url')
-    read_url = cli.parse_db_config('ckan.datastore.read_url')
+    write_url = cli.parse_db_config('ckan.datastore_ts.write_url')
+    read_url = cli.parse_db_config('ckan.datastore_ts.read_url')
     db_url = cli.parse_db_config('sqlalchemy.url')
 
     # Basic validation that read and write URLs reference the same database.

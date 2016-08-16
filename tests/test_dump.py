@@ -11,8 +11,8 @@ import ckan.plugins as p
 import ckan.lib.create_test_data as ctd
 import ckan.model as model
 import ckan.tests.legacy as tests
-import ckanext.datastore.db as db
-import ckanext.datastore.tests.helpers as helpers
+import ckanext.datastore_ts.db as db
+import ckanext.datastore_ts.tests.helpers as helpers
 
 
 class TestDatastoreDump(object):
@@ -54,7 +54,7 @@ class TestDatastoreDump(object):
         assert res_dict['success'] is True
 
         engine = db._get_engine({
-            'connection_url': config['ckan.datastore.write_url']})
+            'connection_url': config['ckan.datastore_ts.write_url']})
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
 
     @classmethod

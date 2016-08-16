@@ -10,8 +10,8 @@ import ckan.lib.create_test_data as ctd
 import ckan.model as model
 import ckan.tests.legacy as tests
 
-import ckanext.datastore.db as db
-from ckanext.datastore.tests.helpers import rebuild_all_dbs, set_url_type
+import ckanext.datastore_ts.db as db
+from ckanext.datastore_ts.tests.helpers import rebuild_all_dbs, set_url_type
 
 assert_equal = nose.tools.assert_equal
 
@@ -53,7 +53,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
         assert res_dict['success'] is True
 
         engine = db._get_engine(
-            {'connection_url': pylons.config['ckan.datastore.write_url']})
+            {'connection_url': pylons.config['ckan.datastore_ts.write_url']})
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
 
     @classmethod
@@ -305,7 +305,7 @@ class TestDatastoreInsert(tests.WsgiAppCase):
         assert res_dict['success'] is True
 
         engine = db._get_engine(
-            {'connection_url': pylons.config['ckan.datastore.write_url']})
+            {'connection_url': pylons.config['ckan.datastore_ts.write_url']})
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
 
     @classmethod
@@ -412,7 +412,7 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
         assert res_dict['success'] is True
 
         engine = db._get_engine(
-            {'connection_url': pylons.config['ckan.datastore.write_url']})
+            {'connection_url': pylons.config['ckan.datastore_ts.write_url']})
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
 
     @classmethod

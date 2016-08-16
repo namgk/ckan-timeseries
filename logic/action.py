@@ -7,9 +7,9 @@ import ckan.lib.base as base
 import ckan.lib.navl.dictization_functions
 import ckan.logic as logic
 import ckan.plugins as p
-import ckanext.datastore.db as db
-import ckanext.datastore.logic.schema as dsschema
-import ckanext.datastore.helpers as datastore_helpers
+import ckanext.datastore_ts.db as db
+import ckanext.datastore_ts.logic.schema as dsschema
+import ckanext.datastore_ts.helpers as datastore_helpers
 
 log = logging.getLogger(__name__)
 _get_or_bust = logic.get_or_bust
@@ -120,7 +120,7 @@ def datastore_create(context, data_dict):
             resource_id = data_dict['resource_id']
             _check_read_only(context, resource_id)
 
-    data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
+    data_dict['connection_url'] = pylons.config['ckan.datastore_ts.write_url']
 
     # validate aliases
     aliases = datastore_helpers.get_list(data_dict.get('aliases', []))
@@ -133,7 +133,7 @@ def datastore_create(context, data_dict):
     # create a private datastore resource, if necessary
     model = _get_or_bust(context, 'model')
     resource = model.Resource.get(data_dict['resource_id'])
-    legacy_mode = 'ckan.datastore.read_url' not in pylons.config
+    legacy_mode = 'ckan.datastore_ts.read_url' not in pylons.config
     if not legacy_mode and resource.package.private:
         data_dict['private'] = True
 
@@ -207,7 +207,7 @@ def datastore_upsert(context, data_dict):
         resource_id = data_dict['resource_id']
         _check_read_only(context, resource_id)
 
-    data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
+    data_dict['connection_url'] = pylons.config['ckan.datastore_ts.write_url']
 
     res_id = data_dict['resource_id']
     resources_sql = sqlalchemy.text(u'''SELECT 1 FROM "_table_metadata"
@@ -249,7 +249,7 @@ def datastore_info(context, data_dict):
     resource_id = _get_or_bust(data_dict, 'id')
     resource = p.toolkit.get_action('resource_show')(context, {'id':resource_id})
 
-    data_dict['connection_url'] = pylons.config['ckan.datastore.read_url']
+    data_dict['connection_url'] = pylons.config['ckan.datastore_ts.read_url']
 
     resources_sql = sqlalchemy.text(u'''SELECT 1 FROM "_table_metadata"
                                         WHERE name = :id AND alias_of IS NULL''')
@@ -334,7 +334,7 @@ def datastore_delete(context, data_dict):
         resource_id = data_dict['resource_id']
         _check_read_only(context, resource_id)
 
-    data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
+    data_dict['connection_url'] = pylons.config['ckan.datastore_ts.write_url']
 
     res_id = data_dict['resource_id']
     resources_sql = sqlalchemy.text(u'''SELECT 1 FROM "_table_metadata"
@@ -433,7 +433,7 @@ def datastore_search(context, data_dict):
         raise p.toolkit.ValidationError(errors)
 
     res_id = data_dict['resource_id']
-    data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
+    data_dict['connection_url'] = pylons.config['ckan.datastore_ts.write_url']
 
     resources_sql = sqlalchemy.text(u'''SELECT alias_of FROM "_table_metadata"
                                         WHERE name = :id''')
@@ -469,7 +469,7 @@ def datastore_search_sql(context, data_dict):
     `PostgreSQL engine <http://www.postgresql.org/docs/9.1/interactive/sql/.html>`_.
     There is an enforced timeout on SQL queries to avoid an unintended DOS.
     DataStore resource that belong to a private CKAN resource cannot be searched with
-    this action. Use :meth:`~ckanext.datastore.logic.action.datastore_search` instead.
+    this action. Use :meth:`~ckanext.datastore_ts.logic.action.datastore_search` instead.
 
     .. note:: This action is only available when using PostgreSQL 9.X and using a read-only user on the database.
         It is not available in :ref:`legacy mode<legacy-mode>`.
@@ -497,7 +497,7 @@ def datastore_search_sql(context, data_dict):
 
     p.toolkit.check_access('datastore_search_sql', context, data_dict)
 
-    data_dict['connection_url'] = pylons.config['ckan.datastore.read_url']
+    data_dict['connection_url'] = pylons.config['ckan.datastore_ts.read_url']
 
     result = db.search_sql(context, data_dict)
     result.pop('id', None)
@@ -507,7 +507,7 @@ def datastore_search_sql(context, data_dict):
 
 def datastore_make_private(context, data_dict):
     ''' Deny access to the DataStore table through
-    :meth:`~ckanext.datastore.logic.action.datastore_search_sql`.
+    :meth:`~ckanext.datastore_ts.logic.action.datastore_search_sql`.
 
     This action is called automatically when a CKAN dataset becomes
     private or a new DataStore table is created for a CKAN resource
@@ -520,7 +520,7 @@ def datastore_make_private(context, data_dict):
         data_dict['resource_id'] = data_dict['id']
     res_id = _get_or_bust(data_dict, 'resource_id')
 
-    data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
+    data_dict['connection_url'] = pylons.config['ckan.datastore_ts.write_url']
 
     if not _resource_exists(context, data_dict):
         raise p.toolkit.ObjectNotFound(p.toolkit._(
@@ -534,7 +534,7 @@ def datastore_make_private(context, data_dict):
 
 def datastore_make_public(context, data_dict):
     ''' Allow access to the DataStore table through
-    :meth:`~ckanext.datastore.logic.action.datastore_search_sql`.
+    :meth:`~ckanext.datastore_ts.logic.action.datastore_search_sql`.
 
     This action is called automatically when a CKAN dataset becomes
     public.
@@ -546,7 +546,7 @@ def datastore_make_public(context, data_dict):
         data_dict['resource_id'] = data_dict['id']
     res_id = _get_or_bust(data_dict, 'resource_id')
 
-    data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
+    data_dict['connection_url'] = pylons.config['ckan.datastore_ts.write_url']
 
     if not _resource_exists(context, data_dict):
         raise p.toolkit.ObjectNotFound(p.toolkit._(

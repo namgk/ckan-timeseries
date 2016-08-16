@@ -8,12 +8,12 @@ import sqlalchemy.engine.url as sa_url
 import ckan.plugins as p
 import ckan.logic as logic
 import ckan.model as model
-import ckanext.datastore.logic.action as action
-import ckanext.datastore.logic.auth as auth
-import ckanext.datastore.db as db
-import ckanext.datastore.interfaces as interfaces
-import ckanext.datastore.helpers as datastore_helpers
-from ckanext.datastore.helpers import literal_string
+import ckanext.datastore_ts.logic.action as action
+import ckanext.datastore_ts.logic.auth as auth
+import ckanext.datastore_ts.db as db
+import ckanext.datastore_ts.interfaces as interfaces
+import ckanext.datastore_ts.helpers as datastore_helpers
+from ckanext.datastore_ts.helpers import literal_string
 
 
 log = logging.getLogger(__name__)
@@ -28,15 +28,15 @@ def _is_legacy_mode(config):
     '''
         Decides if the DataStore should run on legacy mode
 
-        Returns True if `ckan.datastore.read_url` is not set in the provided
+        Returns True if `ckan.datastore_ts.read_url` is not set in the provided
         config object or CKAN is running on Postgres < 9.x
     '''
-    write_url = config.get('ckan.datastore.write_url')
+    write_url = config.get('ckan.datastore_ts.write_url')
 
     engine = db._get_engine({'connection_url': write_url})
     connection = engine.connect()
 
-    return (not config.get('ckan.datastore.read_url') or
+    return (not config.get('ckan.datastore_ts.read_url') or
             not db._pg_version_is_at_least(connection, '9.0'))
 
 
@@ -71,9 +71,9 @@ class DatastorePlugin(p.SingletonPlugin):
 
     def configure(self, config):
         self.config = config
-        # check for ckan.datastore.write_url and ckan.datastore.read_url
-        if (not 'ckan.datastore.write_url' in config):
-            error_msg = 'ckan.datastore.write_url not found in config'
+        # check for ckan.datastore_ts.write_url and ckan.datastore_ts.read_url
+        if (not 'ckan.datastore_ts.write_url' in config):
+            error_msg = 'ckan.datastore_ts.write_url not found in config'
             raise DatastoreException(error_msg)
 
         # Legacy mode means that we have no read url. Consequently sql search is not
@@ -83,7 +83,7 @@ class DatastorePlugin(p.SingletonPlugin):
 
         # Check whether users have disabled datastore_search_sql
         self.enable_sql_search = p.toolkit.asbool(
-            self.config.get('ckan.datastore.sqlsearch.enabled', True))
+            self.config.get('ckan.datastore_ts.sqlsearch.enabled', True))
 
         datapusher_formats = config.get('datapusher.formats', '').split()
         self.datapusher_formats = datapusher_formats or DEFAULT_FORMATS
@@ -96,13 +96,13 @@ class DatastorePlugin(p.SingletonPlugin):
             return
 
         self.ckan_url = self.config['sqlalchemy.url']
-        self.write_url = self.config['ckan.datastore.write_url']
+        self.write_url = self.config['ckan.datastore_ts.write_url']
         if self.legacy_mode:
             self.read_url = self.write_url
             log.warn('Legacy mode active. '
                      'The sql search will not be available.')
         else:
-            self.read_url = self.config['ckan.datastore.read_url']
+            self.read_url = self.config['ckan.datastore_ts.read_url']
 
         self.read_engine = db._get_engine(
             {'connection_url': self.read_url})
@@ -270,7 +270,7 @@ class DatastorePlugin(p.SingletonPlugin):
 
     def before_map(self, m):
         m.connect('/datastore/dump/{resource_id}',
-                  controller='ckanext.datastore.controller:DatastoreController',
+                  controller='ckanext.datastore_ts.controller:DatastoreController',
                   action='dump')
         return m
 
@@ -279,7 +279,7 @@ class DatastorePlugin(p.SingletonPlugin):
         # they link to the datastore dumps.
         if resource_dict.get('url_type') == 'datastore':
             resource_dict['url'] = p.toolkit.url_for(
-                controller='ckanext.datastore.controller:DatastoreController',
+                controller='ckanext.datastore_ts.controller:DatastoreController',
                 action='dump', resource_id=resource_dict['id'])
 
         if 'datastore_active' not in resource_dict:
@@ -492,7 +492,7 @@ class DatastorePlugin(p.SingletonPlugin):
         return statements_str, rank_columns_str
 
     def _fts_lang(self, lang=None):
-        default_fts_lang = pylons.config.get('ckan.datastore.default_fts_lang')
+        default_fts_lang = pylons.config.get('ckan.datastore_ts.default_fts_lang')
         if default_fts_lang is None:
             default_fts_lang = u'english'
         return lang or default_fts_lang
