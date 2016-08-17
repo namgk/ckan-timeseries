@@ -3,7 +3,7 @@ import nose.tools
 import pyutilib.component.core
 
 import ckan.plugins
-#import ckanext.datastore_ts.plugin as plugin
+#import ckanext.datastore.plugin as plugin
 
 
 class _TestConfiguration(unittest.TestCase):
@@ -12,18 +12,18 @@ class _TestConfiguration(unittest.TestCase):
     # tests have any value whatsoever.  Anyhow the plugin is not capable of
     # being so tested.  Also why do these test raise a custom exception?
     def setUp(self):
-        self._original_plugin = ckan.plugins.unload('datastore_ts')
+        self._original_plugin = ckan.plugins.unload('datastore')
         pyutilib.component.core.PluginGlobals.singleton_services()[plugin.Datastore_TsPlugin] = True
-        self.p = pyutilib.component.core.PluginGlobals.singleton_services()[plugin.Datastore_TsPlugin] = ckan.plugins.load('datastore_ts')
+        self.p = pyutilib.component.core.PluginGlobals.singleton_services()[plugin.Datastore_TsPlugin] = ckan.plugins.load('datastore')
 
     def tearDown(self):
-        ckan.plugins.unload('datastore_ts')
+        ckan.plugins.unload('datastore')
         pyutilib.component.core.PluginGlobals.singleton_services()[plugin.Datastore_TsPlugin] = self._original_plugin
 
     def test_set_legacy_mode(self):
         c = {
             'sqlalchemy.url': 'bar',
-            'ckan.datastore_ts.write_url': 'foo'
+            'ckan.datastore.write_url': 'foo'
         }
         try:
             self.p.configure(c)

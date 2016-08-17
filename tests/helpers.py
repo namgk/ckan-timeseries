@@ -23,7 +23,7 @@ def rebuild_all_dbs(Session):
     ''' If the tests are running on the same db, we have to make sure that
     the ckan tables are recrated.
     '''
-    db_read_url_parts = cli.parse_db_config('ckan.datastore_ts.write_url')
+    db_read_url_parts = cli.parse_db_config('ckan.datastore.write_url')
     db_ckan_url_parts = cli.parse_db_config('sqlalchemy.url')
     same_db = db_read_url_parts['db_name'] == db_ckan_url_parts['db_name']
 
@@ -38,5 +38,5 @@ def set_url_type(resources, user):
     for resource in resources:
         resource = p.toolkit.get_action('resource_show')(
             context, {'id': resource.id})
-        resource['url_type'] = 'datastore_ts'
+        resource['url_type'] = 'datastore'
         p.toolkit.get_action('resource_update')(context, resource)

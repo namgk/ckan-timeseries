@@ -1,7 +1,7 @@
 import ckan.plugins.interfaces as interfaces
 
 
-class IDatastore(interfaces.Interface):
+class IDatastore_Ts(interfaces.Interface):
     '''Allow modifying Datastore queries'''
 
     def datastore_validate(self, context, data_dict, fields_types):
@@ -16,7 +16,7 @@ class IDatastore(interfaces.Interface):
         supports an ``age_between`` filter, you have to remove this filter from
         the filters on the ``data_dict``.
 
-        The same ``data_dict`` will be passed to every IDatastore extension in
+        The same ``data_dict`` will be passed to every IDatastore_Ts extension in
         the order they've been loaded (the ``datastore`` plugin will always
         come first). One extension will get the resulting ``data_dict`` from
         the previous extensions. In the end, if the ``data_dict`` is empty, it
@@ -38,11 +38,11 @@ class IDatastore(interfaces.Interface):
     def datastore_search(self, context, data_dict, fields_types, query_dict):
         '''Modify queries made on datastore_search
 
-        The overall design is that every IDatastore extension will receive the
+        The overall design is that every IDatastore_Ts extension will receive the
         ``query_dict`` with the modifications made by previous extensions, then
         it can add/remove stuff into it before passing it on. You can think of
         it as pipes, where the ``query_dict`` is being passed to each
-        IDatastore extension in the order they've been loaded allowing them to
+        IDatastore_Ts extension in the order they've been loaded allowing them to
         change the ``query_dict``. The ``datastore`` extension always comes
         first.
 
@@ -83,7 +83,7 @@ class IDatastore(interfaces.Interface):
         :param fields_types: the current resource's fields as dict keys and
             their types as values
         :type fields_types: dictionary
-        :param query_dict: the current query_dict, as changed by the IDatastore
+        :param query_dict: the current query_dict, as changed by the IDatastore_Ts
             extensions that ran before yours
         :type query_dict: dictionary
 
@@ -95,11 +95,11 @@ class IDatastore(interfaces.Interface):
     def datastore_delete(self, context, data_dict, fields_types, query_dict):
         '''Modify queries made on datastore_delete
 
-        The overall design is that every IDatastore extension will receive the
+        The overall design is that every IDatastore_Ts extension will receive the
         ``query_dict`` with the modifications made by previous extensions, then
         it can add/remove stuff into it before passing it on. You can think of
         it as pipes, where the ``query_dict`` is being passed to each
-        IDatastore extension in the order they've been loaded allowing them to
+        IDatastore_Ts extension in the order they've been loaded allowing them to
         change the ``query_dict``. The ``datastore`` extension always comes
         first.
 
@@ -135,7 +135,7 @@ class IDatastore(interfaces.Interface):
         :param fields_types: the current resource's fields as dict keys and
             their types as values
         :type fields_types: dictionary
-        :param query_dict: the current query_dict, as changed by the IDatastore
+        :param query_dict: the current query_dict, as changed by the IDatastore_Ts
             extensions that ran before yours
         :type query_dict: dictionary
 

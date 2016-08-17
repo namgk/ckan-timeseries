@@ -1,6 +1,6 @@
 import ckan.plugins as p
 
-import ckanext.datastore_ts.interfaces as interfaces
+import ckanext.datastore.interfaces as interfaces
 
 
 class SampleDataStorePlugin(p.SingletonPlugin):

@@ -3,8 +3,8 @@ import mock
 
 import ckan.tests.helpers as helpers
 import ckan.plugins as p
-import ckanext.datastore_ts.interfaces as interfaces
-import ckanext.datastore_ts.plugin as plugin
+import ckanext.datastore.interfaces as interfaces
+import ckanext.datastore.plugin as plugin
 
 
 Datastore_TsPlugin = plugin.Datastore_TsPlugin
@@ -14,26 +14,26 @@ assert_raises = nose.tools.assert_raises
 
 class TestPluginLoadingOrder(object):
     def setup(self):
-        if p.plugin_loaded('datastore_ts'):
-            p.unload('datastore_ts')
+        if p.plugin_loaded('datastore'):
+            p.unload('datastore')
         if p.plugin_loaded('sample_datastore_plugin'):
             p.unload('sample_datastore_plugin')
 
     def test_loading_datastore_first_works(self):
-        p.load('datastore_ts')
+        p.load('datastore')
         p.load('sample_datastore_plugin')
         p.unload('sample_datastore_plugin')
-        p.unload('datastore_ts')
+        p.unload('datastore')
 
     def test_loading_datastore_last_doesnt_work(self):
         # This test is complicated because we can't import
-        # ckanext.datastore_ts.plugin before running it. If we did so, the
+        # ckanext.datastore.plugin before running it. If we did so, the
         # Datastore_TsPlugin class would be parsed which breaks the reason of our
         # test.
         p.load('sample_datastore_plugin')
         thrown_exception = None
         try:
-            p.load('datastore_ts')
+            p.load('datastore')
         except Exception as e:
             thrown_exception = e
         idatastores = [x.__class__.__name__ for x
@@ -53,13 +53,13 @@ class TestPluginLoadingOrder(object):
 class TestPluginDatastoreSearch(object):
     @classmethod
     def setup_class(cls):
-        p.load('datastore_ts')
+        p.load('datastore')
 
     @classmethod
     def teardown_class(cls):
-        p.unload('datastore_ts')
+        p.unload('datastore')
 
-    @helpers.change_config('ckan.datastore_ts.default_fts_lang', None)
+    @helpers.change_config('ckan.datastore.default_fts_lang', None)
     def test_english_is_default_fts_language(self):
         expected_ts_query = ', plainto_tsquery(\'english\', \'foo\') "query"'
         data_dict = {
@@ -70,7 +70,7 @@ class TestPluginDatastoreSearch(object):
 
         assert_equal(result['ts_query'], expected_ts_query)
 
-    @helpers.change_config('ckan.datastore_ts.default_fts_lang', 'simple')
+    @helpers.change_config('ckan.datastore.default_fts_lang', 'simple')
     def test_can_overwrite_default_fts_lang_using_config_variable(self):
         expected_ts_query = ', plainto_tsquery(\'simple\', \'foo\') "query"'
         data_dict = {
@@ -81,7 +81,7 @@ class TestPluginDatastoreSearch(object):
 
         assert_equal(result['ts_query'], expected_ts_query)
 
-    @helpers.change_config('ckan.datastore_ts.default_fts_lang', 'simple')
+    @helpers.change_config('ckan.datastore.default_fts_lang', 'simple')
     def test_lang_parameter_overwrites_default_fts_lang(self):
         expected_ts_query = ', plainto_tsquery(\'french\', \'foo\') "query"'
         data_dict = {
@@ -123,7 +123,7 @@ class TestPluginDatastoreSearch(object):
 
         assert_equal(result['where'], [])
 
-    @helpers.change_config('ckan.datastore_ts.default_fts_lang', None)
+    @helpers.change_config('ckan.datastore.default_fts_lang', None)
     def test_fts_where_clause_lang_uses_english_by_default(self):
         expected_where = [(u'to_tsvector(\'english\', cast("country" as text))'
                            u' @@ "query country"',)]
@@ -139,7 +139,7 @@ class TestPluginDatastoreSearch(object):
 
         assert_equal(result['where'], expected_where)
 
-    @helpers.change_config('ckan.datastore_ts.default_fts_lang', 'simple')
+    @helpers.change_config('ckan.datastore.default_fts_lang', 'simple')
     def test_fts_where_clause_lang_can_be_overwritten_by_config(self):
         expected_where = [(u'to_tsvector(\'simple\', cast("country" as text))'
                            u' @@ "query country"',)]
@@ -155,7 +155,7 @@ class TestPluginDatastoreSearch(object):
 
         assert_equal(result['where'], expected_where)
 
-    @helpers.change_config('ckan.datastore_ts.default_fts_lang', 'simple')
+    @helpers.change_config('ckan.datastore.default_fts_lang', 'simple')
     def test_fts_where_clause_lang_can_be_overwritten_using_lang_param(self):
         expected_where = [(u'to_tsvector(\'french\', cast("country" as text))'
                            u' @@ "query country"',)]
@@ -172,7 +172,7 @@ class TestPluginDatastoreSearch(object):
 
         assert_equal(result['where'], expected_where)
 
-    @mock.patch('ckanext.datastore_ts.helpers.should_fts_index_field_type')
+    @mock.patch('ckanext.datastore.helpers.should_fts_index_field_type')
     def test_fts_adds_where_clause_on_full_text_when_querying_non_indexed_fields(self, should_fts_index_field_type):
         should_fts_index_field_type.return_value = False
         expected_where = [('_full_text @@ "query country"',),

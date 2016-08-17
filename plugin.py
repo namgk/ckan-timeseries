@@ -28,15 +28,15 @@ def _is_legacy_mode(config):
     '''
         Decides if the DataStore should run on legacy mode
 
-        Returns True if `ckan.datastore_ts.read_url` is not set in the provided
+        Returns True if `ckan.datastore.read_url` is not set in the provided
         config object or CKAN is running on Postgres < 9.x
     '''
-    write_url = config.get('ckan.datastore_ts.write_url')
+    write_url = config.get('ckan.datastore.write_url')
 
     engine = db._get_engine({'connection_url': write_url})
     connection = engine.connect()
 
-    return (not config.get('ckan.datastore_ts.read_url') or
+    return (not config.get('ckan.datastore.read_url') or
             not db._pg_version_is_at_least(connection, '9.0'))
 
 
@@ -52,17 +52,17 @@ class Datastore_TsPlugin(p.SingletonPlugin):
     p.implements(p.IDomainObjectModification, inherit=True)
     p.implements(p.IRoutes, inherit=True)
     p.implements(p.IResourceController, inherit=True)
-    p.implements(interfaces.IDatastore, inherit=True)
+    p.implements(interfaces.IDatastore_Ts, inherit=True)
 
     legacy_mode = False
     resource_show_action = None
 
     def __new__(cls, *args, **kwargs):
-        idatastore_extensions = p.PluginImplementations(interfaces.IDatastore)
-        idatastore_extensions = idatastore_extensions.extensions()
+        IDatastore_Ts_extensions = p.PluginImplementations(interfaces.IDatastore_Ts)
+        IDatastore_Ts_extensions = IDatastore_Ts_extensions.extensions()
 
-        if idatastore_extensions and idatastore_extensions[0].__class__ != cls:
-            msg = ('The "datastore" plugin must be the first IDatastore '
+        if IDatastore_Ts_extensions and IDatastore_Ts_extensions[0].__class__ != cls:
+            msg = ('The "datastore" plugin must be the first IDatastore_Ts '
                    'plugin loaded. Change the order it is loaded in '
                    '"ckan.plugins" in your CKAN .ini file and try again.')
             raise DatastoreException(msg)
@@ -71,9 +71,9 @@ class Datastore_TsPlugin(p.SingletonPlugin):
 
     def configure(self, config):
         self.config = config
-        # check for ckan.datastore_ts.write_url and ckan.datastore_ts.read_url
-        if (not 'ckan.datastore_ts.write_url' in config):
-            error_msg = 'ckan.datastore_ts.write_url not found in config'
+        # check for ckan.datastore.write_url and ckan.datastore.read_url
+        if (not 'ckan.datastore.write_url' in config):
+            error_msg = 'ckan.datastore.write_url not found in config'
             raise DatastoreException(error_msg)
 
         # Legacy mode means that we have no read url. Consequently sql search is not
@@ -83,26 +83,26 @@ class Datastore_TsPlugin(p.SingletonPlugin):
 
         # Check whether users have disabled datastore_search_sql
         self.enable_sql_search = p.toolkit.asbool(
-            self.config.get('ckan.datastore_ts.sqlsearch.enabled', True))
+            self.config.get('ckan.datastore.sqlsearch.enabled', True))
 
         datapusher_formats = config.get('datapusher.formats', '').split()
         self.datapusher_formats = datapusher_formats or DEFAULT_FORMATS
 
         # Check whether we are running one of the paster commands which means
         # that we should ignore the following tests.
-        if sys.argv[0].split('/')[-1] == 'paster' and 'datastore_ts' in sys.argv[1:]:
+        if sys.argv[0].split('/')[-1] == 'paster' and 'datastore' in sys.argv[1:]:
             log.warn('Omitting permission checks because you are '
                      'running paster commands.')
             return
 
         self.ckan_url = self.config['sqlalchemy.url']
-        self.write_url = self.config['ckan.datastore_ts.write_url']
+        self.write_url = self.config['ckan.datastore.write_url']
         if self.legacy_mode:
             self.read_url = self.write_url
             log.warn('Legacy mode active. '
                      'The sql search will not be available.')
         else:
-            self.read_url = self.config['ckan.datastore_ts.read_url']
+            self.read_url = self.config['ckan.datastore.read_url']
 
         self.read_engine = db._get_engine(
             {'connection_url': self.read_url})
@@ -243,33 +243,33 @@ class Datastore_TsPlugin(p.SingletonPlugin):
             connection.close()
 
     def get_actions(self):
-        actions = {'datastore_create': action.datastore_create,
-                   'datastore_upsert': action.datastore_upsert,
-                   'datastore_delete': action.datastore_delete,
-                   'datastore_search': action.datastore_search,
-                   'datastore_info': action.datastore_info,
+        actions = {'datastore_ts_create': action.datastore_create,
+                   'datastore_ts_upsert': action.datastore_upsert,
+                   'datastore_ts_delete': action.datastore_delete,
+                   'datastore_ts_search': action.datastore_search,
+                   'datastore_ts_info': action.datastore_info,
                   }
         if not self.legacy_mode:
             if self.enable_sql_search:
                 # Only enable search_sql if the config does not disable it
-                actions.update({'datastore_search_sql':
+                actions.update({'datastore_ts_search_sql':
                                  action.datastore_search_sql})
             actions.update({
-                'datastore_make_private': action.datastore_make_private,
-                'datastore_make_public': action.datastore_make_public})
+                'datastore_ts_make_private': action.datastore_make_private,
+                'datastore_ts_make_public': action.datastore_make_public})
         return actions
 
     def get_auth_functions(self):
-        return {'datastore_create': auth.datastore_create,
-                'datastore_upsert': auth.datastore_upsert,
-                'datastore_delete': auth.datastore_delete,
-                'datastore_info': auth.datastore_info,
-                'datastore_search': auth.datastore_search,
-                'datastore_search_sql': auth.datastore_search_sql,
-                'datastore_change_permissions': auth.datastore_change_permissions}
+        return {'datastore_ts_create': auth.datastore_create,
+                'datastore_ts_upsert': auth.datastore_upsert,
+                'datastore_ts_delete': auth.datastore_delete,
+                'datastore_ts_info': auth.datastore_info,
+                'datastore_ts_search': auth.datastore_search,
+                'datastore_ts_search_sql': auth.datastore_search_sql,
+                'datastore_ts_change_permissions': auth.datastore_change_permissions}
 
     def before_map(self, m):
-        m.connect('/datastore/dump/{resource_id}',
+        m.connect('/datastore_ts/dump/{resource_id}',
                   controller='ckanext.datastore_ts.controller:DatastoreController',
                   action='dump')
         return m
@@ -277,13 +277,13 @@ class Datastore_TsPlugin(p.SingletonPlugin):
     def before_show(self, resource_dict):
         # Modify the resource url of datastore resources so that
         # they link to the datastore dumps.
-        if resource_dict.get('url_type') == 'datastore_ts':
+        if resource_dict.get('url_type') == 'datastore':
             resource_dict['url'] = p.toolkit.url_for(
                 controller='ckanext.datastore_ts.controller:DatastoreController',
                 action='dump', resource_id=resource_dict['id'])
 
-        if 'datastore_active' not in resource_dict:
-            resource_dict[u'datastore_active'] = False
+        if 'datastore_ts_active' not in resource_dict:
+            resource_dict[u'datastore_ts_active'] = False
 
         return resource_dict
 
@@ -492,7 +492,7 @@ class Datastore_TsPlugin(p.SingletonPlugin):
         return statements_str, rank_columns_str
 
     def _fts_lang(self, lang=None):
-        default_fts_lang = pylons.config.get('ckan.datastore_ts.default_fts_lang')
+        default_fts_lang = pylons.config.get('ckan.datastore.default_fts_lang')
         if default_fts_lang is None:
             default_fts_lang = u'english'
         return lang or default_fts_lang

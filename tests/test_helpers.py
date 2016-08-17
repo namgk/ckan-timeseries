@@ -4,9 +4,9 @@ import pylons
 import sqlalchemy.orm as orm
 import nose
 
-import ckanext.datastore_ts.helpers as datastore_helpers
-import ckanext.datastore_ts.tests.helpers as datastore_test_helpers
-import ckanext.datastore_ts.db as db
+import ckanext.datastore.helpers as datastore_helpers
+import ckanext.datastore.tests.helpers as datastore_test_helpers
+import ckanext.datastore.db as db
 
 
 eq_ = nose.tools.eq_
@@ -67,11 +67,11 @@ class TestGetTables(object):
     @classmethod
     def setup_class(cls):
 
-        if not pylons.config.get('ckan.datastore_ts.read_url'):
+        if not pylons.config.get('ckan.datastore.read_url'):
             raise nose.SkipTest('Datastore runs on legacy mode, skipping...')
 
         engine = db._get_engine(
-            {'connection_url': pylons.config['ckan.datastore_ts.write_url']}
+            {'connection_url': pylons.config['ckan.datastore.write_url']}
         )
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
 

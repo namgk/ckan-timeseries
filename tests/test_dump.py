@@ -11,8 +11,8 @@ import ckan.plugins as p
 import ckan.lib.create_test_data as ctd
 import ckan.model as model
 import ckan.tests.legacy as tests
-import ckanext.datastore_ts.db as db
-import ckanext.datastore_ts.tests.helpers as helpers
+import ckanext.datastore.db as db
+import ckanext.datastore.tests.helpers as helpers
 
 
 class TestDatastoreDump(object):
@@ -25,7 +25,7 @@ class TestDatastoreDump(object):
         cls.app = paste.fixture.TestApp(wsgiapp)
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        p.load('datastore_ts')
+        p.load('datastore')
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -54,13 +54,13 @@ class TestDatastoreDump(object):
         assert res_dict['success'] is True
 
         engine = db._get_engine({
-            'connection_url': config['ckan.datastore_ts.write_url']})
+            'connection_url': config['ckan.datastore.write_url']})
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
 
     @classmethod
     def teardown_class(cls):
         helpers.rebuild_all_dbs(cls.Session)
-        p.unload('datastore_ts')
+        p.unload('datastore')
 
     def test_dump_basic(self):
         auth = {'Authorization': str(self.normal_user.apikey)}

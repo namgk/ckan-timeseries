@@ -10,8 +10,8 @@ import ckan.lib.create_test_data as ctd
 import ckan.model as model
 import ckan.tests.legacy as tests
 
-import ckanext.datastore_ts.db as db
-from ckanext.datastore_ts.tests.helpers import extract, rebuild_all_dbs
+import ckanext.datastore.db as db
+from ckanext.datastore.tests.helpers import extract, rebuild_all_dbs
 
 import ckan.tests.helpers as helpers
 import ckan.tests.factories as factories
@@ -23,11 +23,11 @@ assert_raises = nose.tools.assert_raises
 class TestDatastoreSearchNewTest(object):
     @classmethod
     def setup_class(cls):
-        p.load('datastore_ts')
+        p.load('datastore')
 
     @classmethod
     def teardown_class(cls):
-        p.unload('datastore_ts')
+        p.unload('datastore')
         helpers.reset_db()
 
     def test_fts_on_field_calculates_ranks_only_on_that_specific_field(self):
@@ -112,7 +112,7 @@ class TestDatastoreSearch(tests.WsgiAppCase):
     def setup_class(cls):
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        p.load('datastore_ts')
+        p.load('datastore')
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -164,14 +164,14 @@ class TestDatastoreSearch(tests.WsgiAppCase):
                                  u'rating with %': u'99%'}]
 
         engine = db._get_engine(
-                {'connection_url': pylons.config['ckan.datastore_ts.write_url']}
+                {'connection_url': pylons.config['ckan.datastore.write_url']}
             )
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
 
     @classmethod
     def teardown_class(cls):
         rebuild_all_dbs(cls.Session)
-        p.unload('datastore_ts')
+        p.unload('datastore')
 
     def test_search_basic(self):
         data = {'resource_id': self.data['resource_id']}
@@ -651,7 +651,7 @@ class TestDatastoreFullTextSearch(tests.WsgiAppCase):
     def setup_class(cls):
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        p.load('datastore_ts')
+        p.load('datastore')
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -689,7 +689,7 @@ class TestDatastoreFullTextSearch(tests.WsgiAppCase):
     @classmethod
     def teardown_class(cls):
         model.repo.rebuild_db()
-        p.unload('datastore_ts')
+        p.unload('datastore')
 
     def test_search_full_text(self):
         data = {'resource_id': self.data['resource_id'],
@@ -781,10 +781,10 @@ class TestDatastoreSQL(tests.WsgiAppCase):
     def setup_class(cls):
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        plugin = p.load('datastore_ts')
+        plugin = p.load('datastore')
         if plugin.legacy_mode:
             # make sure we undo adding the plugin
-            p.unload('datastore_ts')
+            p.unload('datastore')
             raise nose.SkipTest("SQL tests are not supported in legacy mode")
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
@@ -837,13 +837,13 @@ class TestDatastoreSQL(tests.WsgiAppCase):
         cls.expected_join_results = [{u'first': 1, u'second': 1}, {u'first': 1, u'second': 2}]
 
         engine = db._get_engine(
-            {'connection_url': pylons.config['ckan.datastore_ts.write_url']})
+            {'connection_url': pylons.config['ckan.datastore.write_url']})
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
 
     @classmethod
     def teardown_class(cls):
         rebuild_all_dbs(cls.Session)
-        p.unload('datastore_ts')
+        p.unload('datastore')
 
     def test_validates_sql_has_a_single_statement(self):
         sql = 'SELECT * FROM public."{0}"; SELECT * FROM public."{0}";'.format(self.data['resource_id'])
@@ -940,7 +940,7 @@ class TestDatastoreSQL(tests.WsgiAppCase):
             'model': model}
         data_dict = {
             'resource_id': self.data['resource_id'],
-            'connection_url': pylons.config['ckan.datastore_ts.write_url']}
+            'connection_url': pylons.config['ckan.datastore.write_url']}
         p.toolkit.get_action('datastore_make_private')(context, data_dict)
         query = 'SELECT * FROM "{0}"'.format(self.data['resource_id'])
         data = {'sql': query}

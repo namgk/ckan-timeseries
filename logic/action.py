@@ -113,14 +113,14 @@ def datastore_create(context, data_dict):
         # create empty resource
         else:
             # no need to set the full url because it will be set in before_show
-            resource_dict['url_type'] = 'datastore_ts'
+            resource_dict['url_type'] = 'datastore'
             p.toolkit.get_action('resource_update')(context, resource_dict)
     else:
         if not data_dict.pop('force', False):
             resource_id = data_dict['resource_id']
             _check_read_only(context, resource_id)
 
-    data_dict['connection_url'] = pylons.config['ckan.datastore_ts.write_url']
+    data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
 
     # validate aliases
     aliases = datastore_helpers.get_list(data_dict.get('aliases', []))
@@ -133,7 +133,7 @@ def datastore_create(context, data_dict):
     # create a private datastore resource, if necessary
     model = _get_or_bust(context, 'model')
     resource = model.Resource.get(data_dict['resource_id'])
-    legacy_mode = 'ckan.datastore_ts.read_url' not in pylons.config
+    legacy_mode = 'ckan.datastore.read_url' not in pylons.config
     if not legacy_mode and resource.package.private:
         data_dict['private'] = True
 
@@ -207,7 +207,7 @@ def datastore_upsert(context, data_dict):
         resource_id = data_dict['resource_id']
         _check_read_only(context, resource_id)
 
-    data_dict['connection_url'] = pylons.config['ckan.datastore_ts.write_url']
+    data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
 
     res_id = data_dict['resource_id']
     resources_sql = sqlalchemy.text(u'''SELECT 1 FROM "_table_metadata"
@@ -249,7 +249,7 @@ def datastore_info(context, data_dict):
     resource_id = _get_or_bust(data_dict, 'id')
     resource = p.toolkit.get_action('resource_show')(context, {'id':resource_id})
 
-    data_dict['connection_url'] = pylons.config['ckan.datastore_ts.read_url']
+    data_dict['connection_url'] = pylons.config['ckan.datastore.read_url']
 
     resources_sql = sqlalchemy.text(u'''SELECT 1 FROM "_table_metadata"
                                         WHERE name = :id AND alias_of IS NULL''')
@@ -334,7 +334,7 @@ def datastore_delete(context, data_dict):
         resource_id = data_dict['resource_id']
         _check_read_only(context, resource_id)
 
-    data_dict['connection_url'] = pylons.config['ckan.datastore_ts.write_url']
+    data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
 
     res_id = data_dict['resource_id']
     resources_sql = sqlalchemy.text(u'''SELECT 1 FROM "_table_metadata"
@@ -433,7 +433,7 @@ def datastore_search(context, data_dict):
         raise p.toolkit.ValidationError(errors)
 
     res_id = data_dict['resource_id']
-    data_dict['connection_url'] = pylons.config['ckan.datastore_ts.write_url']
+    data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
 
     resources_sql = sqlalchemy.text(u'''SELECT alias_of FROM "_table_metadata"
                                         WHERE name = :id''')
@@ -497,7 +497,7 @@ def datastore_search_sql(context, data_dict):
 
     p.toolkit.check_access('datastore_search_sql', context, data_dict)
 
-    data_dict['connection_url'] = pylons.config['ckan.datastore_ts.read_url']
+    data_dict['connection_url'] = pylons.config['ckan.datastore.read_url']
 
     result = db.search_sql(context, data_dict)
     result.pop('id', None)
@@ -520,7 +520,7 @@ def datastore_make_private(context, data_dict):
         data_dict['resource_id'] = data_dict['id']
     res_id = _get_or_bust(data_dict, 'resource_id')
 
-    data_dict['connection_url'] = pylons.config['ckan.datastore_ts.write_url']
+    data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
 
     if not _resource_exists(context, data_dict):
         raise p.toolkit.ObjectNotFound(p.toolkit._(
@@ -546,7 +546,7 @@ def datastore_make_public(context, data_dict):
         data_dict['resource_id'] = data_dict['id']
     res_id = _get_or_bust(data_dict, 'resource_id')
 
-    data_dict['connection_url'] = pylons.config['ckan.datastore_ts.write_url']
+    data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
 
     if not _resource_exists(context, data_dict):
         raise p.toolkit.ObjectNotFound(p.toolkit._(
@@ -577,7 +577,7 @@ def _check_read_only(context, resource_id):
     '''
     res = p.toolkit.get_action('resource_show')(
         context, {'id': resource_id})
-    if res.get('url_type') != 'datastore_ts':
+    if res.get('url_type') != 'datastore':
         raise p.toolkit.ValidationError({
             'read-only': ['Cannot edit read-only resource. Either pass'
                           '"force=True" or change url-type to "datastore"']

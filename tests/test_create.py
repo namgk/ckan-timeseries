@@ -16,8 +16,8 @@ import ckan.config.middleware as middleware
 import ckan.tests.helpers as helpers
 import ckan.tests.factories as factories
 
-import ckanext.datastore_ts.db as db
-from ckanext.datastore_ts.tests.helpers import rebuild_all_dbs, set_url_type
+import ckanext.datastore.db as db
+from ckanext.datastore.tests.helpers import rebuild_all_dbs, set_url_type
 
 
 # avoid hanging tests https://github.com/gabrielfalcao/HTTPretty/issues/34
@@ -29,11 +29,11 @@ if sys.version_info < (2, 7, 0):
 class TestDatastoreCreateNewTests(object):
     @classmethod
     def setup_class(cls):
-        p.load('datastore_ts')
+        p.load('datastore')
 
     @classmethod
     def teardown_class(cls):
-        p.unload('datastore_ts')
+        p.unload('datastore')
         helpers.reset_db()
 
     def test_create_creates_index_on_primary_key(self):
@@ -185,7 +185,7 @@ class TestDatastoreCreateNewTests(object):
 
     def _execute_sql(self, sql, *args):
         engine = db._get_engine(
-            {'connection_url': pylons.config['ckan.datastore_ts.write_url']})
+            {'connection_url': pylons.config['ckan.datastore.write_url']})
         session = orm.scoped_session(orm.sessionmaker(bind=engine))
         return session.connection().execute(sql, *args)
 
@@ -242,12 +242,12 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         cls.app = paste.fixture.TestApp(wsgiapp)
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        p.load('datastore_ts')
+        p.load('datastore')
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
         engine = db._get_engine(
-            {'connection_url': pylons.config['ckan.datastore_ts.write_url']})
+            {'connection_url': pylons.config['ckan.datastore.write_url']})
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
         set_url_type(
             model.Package.get('annakarenina').resources, cls.sysadmin_user)
@@ -255,7 +255,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
     @classmethod
     def teardown_class(cls):
         rebuild_all_dbs(cls.Session)
-        p.unload('datastore_ts')
+        p.unload('datastore')
 
     def test_create_requires_auth(self):
         resource = model.Package.get('annakarenina').resources[0]
