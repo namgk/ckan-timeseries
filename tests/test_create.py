@@ -29,11 +29,11 @@ if sys.version_info < (2, 7, 0):
 class TestDatastoreCreateNewTests(object):
     @classmethod
     def setup_class(cls):
-        p.load('datastore')
+        p.load('datastore_ts')
 
     @classmethod
     def teardown_class(cls):
-        p.unload('datastore')
+        p.unload('datastore_ts')
         helpers.reset_db()
 
     def test_create_creates_index_on_primary_key(self):
@@ -242,7 +242,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         cls.app = paste.fixture.TestApp(wsgiapp)
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        p.load('datastore')
+        p.load('datastore_ts')
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -255,7 +255,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
     @classmethod
     def teardown_class(cls):
         rebuild_all_dbs(cls.Session)
-        p.unload('datastore')
+        p.unload('datastore_ts')
 
     def test_create_requires_auth(self):
         resource = model.Package.get('annakarenina').resources[0]

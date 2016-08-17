@@ -9,7 +9,7 @@ class TestDisable(object):
 
     @classmethod
     def setup_class(cls):
-        with p.use_plugin('datastore') as the_plugin:
+        with p.use_plugin('datastore_ts') as the_plugin:
             legacy = the_plugin.legacy_mode
 
         if legacy:
@@ -18,11 +18,11 @@ class TestDisable(object):
     @t.raises(KeyError)
     def test_disable_sql_search(self):
         config['ckan.datastore_ts.sqlsearch.enabled'] = False
-        with p.use_plugin('datastore') as the_plugin:
+        with p.use_plugin('datastore_ts') as the_plugin:
             print p.toolkit.get_action('datastore_search_sql')
         config['ckan.datastore_ts.sqlsearch.enabled'] = True
 
     def test_enabled_sql_search(self):
         config['ckan.datastore_ts.sqlsearch.enabled'] = True
-        with p.use_plugin('datastore') as the_plugin:
+        with p.use_plugin('datastore_ts') as the_plugin:
             p.toolkit.get_action('datastore_search_sql')

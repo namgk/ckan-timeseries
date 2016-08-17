@@ -23,11 +23,11 @@ assert_raises = nose.tools.assert_raises
 class TestDatastoreSearchNewTest(object):
     @classmethod
     def setup_class(cls):
-        p.load('datastore')
+        p.load('datastore_ts')
 
     @classmethod
     def teardown_class(cls):
-        p.unload('datastore')
+        p.unload('datastore_ts')
         helpers.reset_db()
 
     def test_fts_on_field_calculates_ranks_only_on_that_specific_field(self):
@@ -112,7 +112,7 @@ class TestDatastoreSearch(tests.WsgiAppCase):
     def setup_class(cls):
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        p.load('datastore')
+        p.load('datastore_ts')
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -171,7 +171,7 @@ class TestDatastoreSearch(tests.WsgiAppCase):
     @classmethod
     def teardown_class(cls):
         rebuild_all_dbs(cls.Session)
-        p.unload('datastore')
+        p.unload('datastore_ts')
 
     def test_search_basic(self):
         data = {'resource_id': self.data['resource_id']}
@@ -651,7 +651,7 @@ class TestDatastoreFullTextSearch(tests.WsgiAppCase):
     def setup_class(cls):
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        p.load('datastore')
+        p.load('datastore_ts')
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -689,7 +689,7 @@ class TestDatastoreFullTextSearch(tests.WsgiAppCase):
     @classmethod
     def teardown_class(cls):
         model.repo.rebuild_db()
-        p.unload('datastore')
+        p.unload('datastore_ts')
 
     def test_search_full_text(self):
         data = {'resource_id': self.data['resource_id'],
@@ -781,10 +781,10 @@ class TestDatastoreSQL(tests.WsgiAppCase):
     def setup_class(cls):
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        plugin = p.load('datastore')
+        plugin = p.load('datastore_ts')
         if plugin.legacy_mode:
             # make sure we undo adding the plugin
-            p.unload('datastore')
+            p.unload('datastore_ts')
             raise nose.SkipTest("SQL tests are not supported in legacy mode")
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
@@ -843,7 +843,7 @@ class TestDatastoreSQL(tests.WsgiAppCase):
     @classmethod
     def teardown_class(cls):
         rebuild_all_dbs(cls.Session)
-        p.unload('datastore')
+        p.unload('datastore_ts')
 
     def test_validates_sql_has_a_single_statement(self):
         sql = 'SELECT * FROM public."{0}"; SELECT * FROM public."{0}";'.format(self.data['resource_id'])

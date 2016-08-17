@@ -192,11 +192,11 @@ class TestJsonGetValues(object):
 class TestGetAllResourcesIdsInDatastore(object):
     @classmethod
     def setup_class(cls):
-        p.load('datastore')
+        p.load('datastore_ts')
 
     @classmethod
     def teardown_class(cls):
-        p.unload('datastore')
+        p.unload('datastore_ts')
         helpers.reset_db()
 
     def test_get_all_resources_ids_in_datastore(self):

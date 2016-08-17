@@ -7,33 +7,33 @@ import ckanext.datastore_ts.interfaces as interfaces
 import ckanext.datastore_ts.plugin as plugin
 
 
-DatastorePlugin = plugin.DatastorePlugin
+Datastore_TsPlugin = plugin.Datastore_TsPlugin
 assert_equal = nose.tools.assert_equal
 assert_raises = nose.tools.assert_raises
 
 
 class TestPluginLoadingOrder(object):
     def setup(self):
-        if p.plugin_loaded('datastore'):
-            p.unload('datastore')
+        if p.plugin_loaded('datastore_ts'):
+            p.unload('datastore_ts')
         if p.plugin_loaded('sample_datastore_plugin'):
             p.unload('sample_datastore_plugin')
 
     def test_loading_datastore_first_works(self):
-        p.load('datastore')
+        p.load('datastore_ts')
         p.load('sample_datastore_plugin')
         p.unload('sample_datastore_plugin')
-        p.unload('datastore')
+        p.unload('datastore_ts')
 
     def test_loading_datastore_last_doesnt_work(self):
         # This test is complicated because we can't import
         # ckanext.datastore_ts.plugin before running it. If we did so, the
-        # DatastorePlugin class would be parsed which breaks the reason of our
+        # Datastore_TsPlugin class would be parsed which breaks the reason of our
         # test.
         p.load('sample_datastore_plugin')
         thrown_exception = None
         try:
-            p.load('datastore')
+            p.load('datastore_ts')
         except Exception as e:
             thrown_exception = e
         idatastores = [x.__class__.__name__ for x
@@ -45,7 +45,7 @@ class TestPluginLoadingOrder(object):
              'loaded should raise DatastoreException')
         assert_equal(thrown_exception.__class__.__name__,
                      plugin.DatastoreException.__name__)
-        assert plugin.DatastorePlugin.__name__ not in idatastores, \
+        assert plugin.Datastore_TsPlugin.__name__ not in idatastores, \
             ('You shouldn\'t be able to load the "datastore" plugin after'
              'another IDatastore plugin was loaded')
 
@@ -53,11 +53,11 @@ class TestPluginLoadingOrder(object):
 class TestPluginDatastoreSearch(object):
     @classmethod
     def setup_class(cls):
-        p.load('datastore')
+        p.load('datastore_ts')
 
     @classmethod
     def teardown_class(cls):
-        p.unload('datastore')
+        p.unload('datastore_ts')
 
     @helpers.change_config('ckan.datastore_ts.default_fts_lang', None)
     def test_english_is_default_fts_language(self):
@@ -199,5 +199,5 @@ class TestPluginDatastoreSearch(object):
         }
         _query_dict.update(query_dict)
 
-        return DatastorePlugin().datastore_search(context, data_dict,
+        return Datastore_TsPlugin().datastore_search(context, data_dict,
                                                   fields_types, _query_dict)

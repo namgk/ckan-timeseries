@@ -113,7 +113,7 @@ def datastore_create(context, data_dict):
         # create empty resource
         else:
             # no need to set the full url because it will be set in before_show
-            resource_dict['url_type'] = 'datastore'
+            resource_dict['url_type'] = 'datastore_ts'
             p.toolkit.get_action('resource_update')(context, resource_dict)
     else:
         if not data_dict.pop('force', False):
@@ -577,7 +577,7 @@ def _check_read_only(context, resource_id):
     '''
     res = p.toolkit.get_action('resource_show')(
         context, {'id': resource_id})
-    if res.get('url_type') != 'datastore':
+    if res.get('url_type') != 'datastore_ts':
         raise p.toolkit.ValidationError({
             'read-only': ['Cannot edit read-only resource. Either pass'
                           '"force=True" or change url-type to "datastore"']

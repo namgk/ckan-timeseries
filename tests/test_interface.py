@@ -11,13 +11,13 @@ assert_raises = nose.tools.assert_raises
 class TestInterfaces(object):
     @classmethod
     def setup_class(cls):
-        p.load('datastore')
+        p.load('datastore_ts')
         p.load('sample_datastore_plugin')
 
     @classmethod
     def teardown_class(cls):
         p.unload('sample_datastore_plugin')
-        p.unload('datastore')
+        p.unload('datastore_ts')
 
     def setup(self):
         helpers.reset_db()

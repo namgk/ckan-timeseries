@@ -23,7 +23,7 @@ class TestDatastoreDelete(tests.WsgiAppCase):
     def setup_class(cls):
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        p.load('datastore')
+        p.load('datastore_ts')
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -49,7 +49,7 @@ class TestDatastoreDelete(tests.WsgiAppCase):
     @classmethod
     def teardown_class(cls):
         rebuild_all_dbs(cls.Session)
-        p.unload('datastore')
+        p.unload('datastore_ts')
 
     def _create(self):
         postparams = '%s=1' % json.dumps(self.data)

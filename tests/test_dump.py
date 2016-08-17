@@ -25,7 +25,7 @@ class TestDatastoreDump(object):
         cls.app = paste.fixture.TestApp(wsgiapp)
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        p.load('datastore')
+        p.load('datastore_ts')
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -60,7 +60,7 @@ class TestDatastoreDump(object):
     @classmethod
     def teardown_class(cls):
         helpers.rebuild_all_dbs(cls.Session)
-        p.unload('datastore')
+        p.unload('datastore_ts')
 
     def test_dump_basic(self):
         auth = {'Authorization': str(self.normal_user.apikey)}

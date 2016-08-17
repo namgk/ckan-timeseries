@@ -38,5 +38,5 @@ def set_url_type(resources, user):
     for resource in resources:
         resource = p.toolkit.get_action('resource_show')(
             context, {'id': resource.id})
-        resource['url_type'] = 'datastore'
+        resource['url_type'] = 'datastore_ts'
         p.toolkit.get_action('resource_update')(context, resource)

@@ -25,15 +25,15 @@ class TestDatastoreInfo(object):
     def setup_class(cls):
         if not is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        plugin = p.load('datastore')
+        plugin = p.load('datastore_ts')
         if plugin.legacy_mode:
             # make sure we undo adding the plugin
-            p.unload('datastore')
+            p.unload('datastore_ts')
             raise nose.SkipTest("Info is not supported in legacy mode")
 
     @classmethod
     def teardown_class(cls):
-        p.unload('datastore')
+        p.unload('datastore_ts')
         helpers.reset_db()
 
     def test_info_success(self):

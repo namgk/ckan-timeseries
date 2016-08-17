@@ -44,7 +44,7 @@ class DatastoreException(Exception):
     pass
 
 
-class DatastorePlugin(p.SingletonPlugin):
+class Datastore_TsPlugin(p.SingletonPlugin):
     p.implements(p.IConfigurable, inherit=True)
     p.implements(p.IActions)
     p.implements(p.IAuthFunctions)
@@ -90,7 +90,7 @@ class DatastorePlugin(p.SingletonPlugin):
 
         # Check whether we are running one of the paster commands which means
         # that we should ignore the following tests.
-        if sys.argv[0].split('/')[-1] == 'paster' and 'datastore' in sys.argv[1:]:
+        if sys.argv[0].split('/')[-1] == 'paster' and 'datastore_ts' in sys.argv[1:]:
             log.warn('Omitting permission checks because you are '
                      'running paster commands.')
             return
@@ -277,7 +277,7 @@ class DatastorePlugin(p.SingletonPlugin):
     def before_show(self, resource_dict):
         # Modify the resource url of datastore resources so that
         # they link to the datastore dumps.
-        if resource_dict.get('url_type') == 'datastore':
+        if resource_dict.get('url_type') == 'datastore_ts':
             resource_dict['url'] = p.toolkit.url_for(
                 controller='ckanext.datastore_ts.controller:DatastoreController',
                 action='dump', resource_id=resource_dict['id'])
