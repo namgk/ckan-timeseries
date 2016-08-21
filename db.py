@@ -897,8 +897,8 @@ def delete_data(context, data_dict):
     _execute_single_statement(context, sql_string, where_values)
 
 
-def validate(context, data_dict):
-    fields_types = _get_fields_types(context, data_dict)
+def validate(context, data_dict, fields_types):
+    # fields_types = _get_fields_types(context, data_dict)
     data_dict_copy = copy.deepcopy(data_dict)
 
     # TODO: Convert all attributes that can be a comma-separated string to
@@ -940,8 +940,8 @@ def validate(context, data_dict):
 
 
 def search_data(context, data_dict):
-    validate(context, data_dict)
     fields_types = _get_fields_types(context, data_dict)
+    validate(context, data_dict, fields_types)
 
     query_dict = {
         'select': [],
@@ -1185,12 +1185,12 @@ def delete(context, data_dict):
 def search(context, data_dict):
     engine = _get_engine(data_dict)
     context['connection'] = engine.connect()
-    timeout = context.get('query_timeout', _TIMEOUT)
+    # timeout = context.get('query_timeout', _TIMEOUT)
     _cache_types(context)
 
     try:
-        context['connection'].execute(
-            u'SET LOCAL statement_timeout TO {0}'.format(timeout))
+        # context['connection'].execute(
+        #     u'SET LOCAL statement_timeout TO {0}'.format(timeout))
         return search_data(context, data_dict)
     except DBAPIError, e:
         if e.orig.pgcode == _PG_ERR_CODE['query_canceled']:

@@ -435,21 +435,21 @@ def datastore_search(context, data_dict):
     res_id = data_dict['resource_id']
     data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
 
-    resources_sql = sqlalchemy.text(u'''SELECT alias_of FROM "_table_metadata"
-                                        WHERE name = :id''')
-    results = db._get_engine(data_dict).execute(resources_sql, id=res_id)
+    # resources_sql = sqlalchemy.text(u'''SELECT alias_of FROM "_table_metadata"
+    #                                     WHERE name = :id''')
+    # results = db._get_engine(data_dict).execute(resources_sql, id=res_id)
 
     # Resource only has to exist in the datastore (because it could be an alias)
-    if not results.rowcount > 0:
-        raise p.toolkit.ObjectNotFound(p.toolkit._(
-            'Resource "{0}" was not found.'.format(res_id)
-        ))
+    # if not results.rowcount > 0:
+    #     raise p.toolkit.ObjectNotFound(p.toolkit._(
+    #         'Resource "{0}" was not found.'.format(res_id)
+    #     ))
 
     if not data_dict['resource_id'] in WHITELISTED_RESOURCES:
         # Replace potential alias with real id to simplify access checks
-        resource_id = results.fetchone()[0]
-        if resource_id:
-            data_dict['resource_id'] = resource_id
+        # resource_id = results.fetchone()[0]
+        # if resource_id:
+        #     data_dict['resource_id'] = resource_id
 
         p.toolkit.check_access('datastore_search', context, data_dict)
 
