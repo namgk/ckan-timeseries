@@ -1,5 +1,4 @@
 .ropeproject
-ckanext/
 node_modules
 bower_components
 
