@@ -77,7 +77,7 @@ def datastore_create(context, data_dict):
     if errors:
         raise p.toolkit.ValidationError(errors)
 
-    p.toolkit.check_access('datastore_create', context, data_dict)
+    p.toolkit.check_access('datastore_ts_create', context, data_dict)
 
     if 'resource' in data_dict and 'resource_id' in data_dict:
         raise p.toolkit.ValidationError({
@@ -201,7 +201,7 @@ def datastore_upsert(context, data_dict):
     if errors:
         raise p.toolkit.ValidationError(errors)
 
-    p.toolkit.check_access('datastore_upsert', context, data_dict)
+    p.toolkit.check_access('datastore_ts_upsert', context, data_dict)
 
     if not data_dict.pop('force', False):
         resource_id = data_dict['resource_id']
@@ -244,7 +244,7 @@ def datastore_info(context, data_dict):
 
         return "text"
 
-    p.toolkit.check_access('datastore_info', context, data_dict)
+    p.toolkit.check_access('datastore_ts_info', context, data_dict)
 
     resource_id = _get_or_bust(data_dict, 'id')
     resource = p.toolkit.get_action('resource_show')(context, {'id':resource_id})
@@ -328,7 +328,7 @@ def datastore_delete(context, data_dict):
     if errors:
         raise p.toolkit.ValidationError(errors)
 
-    p.toolkit.check_access('datastore_delete', context, data_dict)
+    p.toolkit.check_access('datastore_ts_delete', context, data_dict)
 
     if not data_dict.pop('force', False):
         resource_id = data_dict['resource_id']
@@ -451,7 +451,7 @@ def datastore_search(context, data_dict):
         # if resource_id:
         #     data_dict['resource_id'] = resource_id
 
-        p.toolkit.check_access('datastore_search', context, data_dict)
+        p.toolkit.check_access('datastore_ts_search', context, data_dict)
 
     result = db.search(context, data_dict)
     result.pop('id', None)
@@ -495,7 +495,7 @@ def datastore_search_sql(context, data_dict):
             'query': ['Query is not a single statement.']
         })
 
-    p.toolkit.check_access('datastore_search_sql', context, data_dict)
+    p.toolkit.check_access('datastore_ts_search_sql', context, data_dict)
 
     data_dict['connection_url'] = pylons.config['ckan.datastore.read_url']
 
@@ -527,7 +527,7 @@ def datastore_make_private(context, data_dict):
             u'Resource "{0}" was not found.'.format(res_id)
         ))
 
-    p.toolkit.check_access('datastore_change_permissions', context, data_dict)
+    p.toolkit.check_access('datastore_ts_change_permissions', context, data_dict)
 
     db.make_private(context, data_dict)
 
@@ -553,7 +553,7 @@ def datastore_make_public(context, data_dict):
             u'Resource "{0}" was not found.'.format(res_id)
         ))
 
-    p.toolkit.check_access('datastore_change_permissions', context, data_dict)
+    p.toolkit.check_access('datastore_ts_change_permissions', context, data_dict)
 
     db.make_public(context, data_dict)
 
