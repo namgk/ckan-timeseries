@@ -65,6 +65,15 @@ def datastore_create(context, data_dict):
     See :ref:`fields` and :ref:`records` for details on how to lay out records.
 
     '''
+    log.debug(
+        'Creating new datastore table ...............'
+    )
+    log.debug(
+        'Context: {0!s}'.format(context)
+    )
+    log.debug(
+        'data_dict: {0!s}'.format(data_dict)
+    )
     schema = context.get('schema', dsschema.datastore_create_schema())
     records = data_dict.pop('records', None)
     resource = data_dict.pop('resource', None)
@@ -93,6 +102,14 @@ def datastore_create(context, data_dict):
         has_url = 'url' in data_dict['resource']
         # A datastore only resource does not have a url in the db
         data_dict['resource'].setdefault('url', '_datastore_only_resource')
+
+        # @author: Nam Giang - Timeseries stuff 
+        data_dict['fields'].append({'id': u'autogen_timestamp'})
+        import time
+        for record in data_dict['records']:
+            record['autogen_timestamp'] = time.time()
+        # @end Nam Giang
+
         resource_dict = p.toolkit.get_action('resource_create')(
             context, data_dict['resource'])
         data_dict['resource_id'] = resource_dict['id']
@@ -154,8 +171,19 @@ def datastore_create(context, data_dict):
     result.pop('id', None)
     result.pop('private', None)
     result.pop('connection_url')
-    return result
+    log.debug(
+        'result: {0!s}'.format(result)
+    )
+    # Nam Giang
+    def dict_rm_autogen_timestamp(dict):
+        if dict[u'autogen_timestamp']:
+            dict.pop(u'autogen_timestamp', None)
+        return dict
 
+    result['fields'][:] = [f for f in result['fields'] if f.get('id') != u'autogen_timestamp']
+    result['records'] = map(dict_rm_autogen_timestamp, result['records'])
+    # end Nam
+    return result
 
 def datastore_upsert(context, data_dict):
     '''Updates or inserts into a table in the DataStore
@@ -435,21 +463,21 @@ def datastore_search(context, data_dict):
     res_id = data_dict['resource_id']
     data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
 
-    # resources_sql = sqlalchemy.text(u'''SELECT alias_of FROM "_table_metadata"
-    #                                     WHERE name = :id''')
-    # results = db._get_engine(data_dict).execute(resources_sql, id=res_id)
+    resources_sql = sqlalchemy.text(u'''SELECT alias_of FROM "_table_metadata"
+                                        WHERE name = :id''')
+    results = db._get_engine(data_dict).execute(resources_sql, id=res_id)
 
     # Resource only has to exist in the datastore (because it could be an alias)
-    # if not results.rowcount > 0:
-    #     raise p.toolkit.ObjectNotFound(p.toolkit._(
-    #         'Resource "{0}" was not found.'.format(res_id)
-    #     ))
+    if not results.rowcount > 0:
+        raise p.toolkit.ObjectNotFound(p.toolkit._(
+            'Resource "{0}" was not found.'.format(res_id)
+        ))
 
     if not data_dict['resource_id'] in WHITELISTED_RESOURCES:
         # Replace potential alias with real id to simplify access checks
-        # resource_id = results.fetchone()[0]
-        # if resource_id:
-        #     data_dict['resource_id'] = resource_id
+        resource_id = results.fetchone()[0]
+        if resource_id:
+            data_dict['resource_id'] = resource_id
 
         p.toolkit.check_access('datastore_ts_search', context, data_dict)
 
