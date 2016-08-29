@@ -45,7 +45,7 @@ def _permissions_sql(context):
 
 
 parser = argparse.ArgumentParser(
-    prog='paster datastore',
+    prog='paster datastore_ts',
     description='Perform commands to set up the datastore',
     epilog='Make sure that the datastore URLs are set properly before you run '
            'these commands!')

@@ -23,11 +23,11 @@ assert_raises = nose.tools.assert_raises
 class TestDatastoreSearchNewTest(object):
     @classmethod
     def setup_class(cls):
-        p.load('datastore')
+        p.load('datastore_ts')
 
     @classmethod
     def teardown_class(cls):
-        p.unload('datastore')
+        p.unload('datastore_ts')
         helpers.reset_db()
 
     def test_fts_on_field_calculates_ranks_only_on_that_specific_field(self):

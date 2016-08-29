@@ -65,15 +65,18 @@ def datastore_create(context, data_dict):
     See :ref:`fields` and :ref:`records` for details on how to lay out records.
 
     '''
-    log.debug(
-        'Creating new datastore table ...............'
-    )
-    log.debug(
-        'Context: {0!s}'.format(context)
-    )
-    log.debug(
-        'data_dict: {0!s}'.format(data_dict)
-    )
+    # Nam Giang
+    # Timeseries stuff 
+    if 'fields' in data_dict:
+        data_dict['fields'].insert(0,{'id': u'autogen_timestamp', 'type': 'float'})
+
+    if 'records' in data_dict:
+        import time
+        for r in data_dict['records']:
+            if isinstance(r, dict):
+                r['autogen_timestamp'] = time.time()
+    # end Nam Giang
+
     schema = context.get('schema', dsschema.datastore_create_schema())
     records = data_dict.pop('records', None)
     resource = data_dict.pop('resource', None)
@@ -103,13 +106,6 @@ def datastore_create(context, data_dict):
         # A datastore only resource does not have a url in the db
         data_dict['resource'].setdefault('url', '_datastore_only_resource')
 
-        # @author: Nam Giang - Timeseries stuff 
-        data_dict['fields'].append({'id': u'autogen_timestamp'})
-        import time
-        for record in data_dict['records']:
-            record['autogen_timestamp'] = time.time()
-        # @end Nam Giang
-
         resource_dict = p.toolkit.get_action('resource_create')(
             context, data_dict['resource'])
         data_dict['resource_id'] = resource_dict['id']
@@ -136,6 +132,7 @@ def datastore_create(context, data_dict):
         if not data_dict.pop('force', False):
             resource_id = data_dict['resource_id']
             _check_read_only(context, resource_id)
+
 
     data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
 
@@ -171,18 +168,19 @@ def datastore_create(context, data_dict):
     result.pop('id', None)
     result.pop('private', None)
     result.pop('connection_url')
-    log.debug(
-        'result: {0!s}'.format(result)
-    )
+
     # Nam Giang
     def dict_rm_autogen_timestamp(dict):
         if dict[u'autogen_timestamp']:
             dict.pop(u'autogen_timestamp', None)
         return dict
 
-    result['fields'][:] = [f for f in result['fields'] if f.get('id') != u'autogen_timestamp']
-    result['records'] = map(dict_rm_autogen_timestamp, result['records'])
+    if 'fields' in result:
+        result['fields'][:] = [f for f in result['fields'] if f.get('id') != u'autogen_timestamp']
+    if 'records' in result:
+        result['records'] = map(dict_rm_autogen_timestamp, result['records'])
     # end Nam
+
     return result
 
 def datastore_upsert(context, data_dict):

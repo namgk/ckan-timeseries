@@ -16,8 +16,8 @@ import ckan.config.middleware as middleware
 import ckan.tests.helpers as helpers
 import ckan.tests.factories as factories
 
-import ckanext.datastore.db as db
-from ckanext.datastore.tests.helpers import rebuild_all_dbs, set_url_type
+import ckanext.datastore_ts.db as db
+from ckanext.datastore_ts.tests.helpers import rebuild_all_dbs, set_url_type
 
 
 # avoid hanging tests https://github.com/gabrielfalcao/HTTPretty/issues/34
@@ -29,11 +29,11 @@ if sys.version_info < (2, 7, 0):
 class TestDatastoreCreateNewTests(object):
     @classmethod
     def setup_class(cls):
-        p.load('datastore')
+        p.load('datastore_ts')
 
     @classmethod
     def teardown_class(cls):
-        p.unload('datastore')
+        p.unload('datastore_ts')
         helpers.reset_db()
 
     def test_create_creates_index_on_primary_key(self):
@@ -45,7 +45,7 @@ class TestDatastoreCreateNewTests(object):
                 'package_id': package['id']
             },
         }
-        result = helpers.call_action('datastore_create', **data)
+        result = helpers.call_action('datastore_ts_create', **data)
         resource_id = result['resource_id']
         index_names = self._get_index_names(resource_id)
         assert resource_id + '_pkey' in index_names
@@ -62,7 +62,7 @@ class TestDatastoreCreateNewTests(object):
                        {'id': 'author', 'type': 'text'}],
             'indexes': ['author']
         }
-        result = helpers.call_action('datastore_create', **data)
+        result = helpers.call_action('datastore_ts_create', **data)
         resource_id = result['resource_id']
         assert self._has_index_on_field(resource_id, '"author"')
 
@@ -78,7 +78,7 @@ class TestDatastoreCreateNewTests(object):
                        {'id': 'author', 'type': 'text'}],
             'indexes': ['author']
         }
-        result = helpers.call_action('datastore_create', **data)
+        result = helpers.call_action('datastore_ts_create', **data)
         resource_id = result['resource_id']
         assert self._has_index_on_field(resource_id, '"_full_text"')
 
@@ -93,7 +93,7 @@ class TestDatastoreCreateNewTests(object):
             'fields': [{'id': 'book', 'type': 'text'},
                        {'id': 'author', 'type': 'text'}],
         }
-        result = helpers.call_action('datastore_create', **data)
+        result = helpers.call_action('datastore_ts_create', **data)
         resource_id = result['resource_id']
         assert self._has_index_on_field(resource_id, '"_full_text"')
 
@@ -109,7 +109,7 @@ class TestDatastoreCreateNewTests(object):
                        {'id': 'author', 'type': 'text'}],
             'lang': 'english',
         }
-        result = helpers.call_action('datastore_create', **data)
+        result = helpers.call_action('datastore_ts_create', **data)
         resource_id = result['resource_id']
         assert self._has_index_on_field(resource_id,
                                         "to_tsvector('english', \"boo%k\")")
@@ -125,7 +125,7 @@ class TestDatastoreCreateNewTests(object):
                 {'book': 'annakarenina', 'author': 'tolstoy'}
             ]
         }
-        result = helpers.call_action('datastore_create', **data)
+        result = helpers.call_action('datastore_ts_create', **data)
         previous_index_names = self._get_index_names(resource['id'])
         data = {
             'resource_id': resource['id'],
@@ -134,7 +134,7 @@ class TestDatastoreCreateNewTests(object):
                 {'book': 'warandpeace', 'author': 'tolstoy'}
             ]
         }
-        result = helpers.call_action('datastore_create', **data)
+        result = helpers.call_action('datastore_ts_create', **data)
         current_index_names = self._get_index_names(resource['id'])
         assert_equal(previous_index_names, current_index_names)
 
@@ -150,7 +150,7 @@ class TestDatastoreCreateNewTests(object):
             'fields': [{'id': 'book', 'type': 'text'},
                        {'id': 'book', 'type': 'text'}],
         }
-        result = helpers.call_action('datastore_create', **data)
+        result = helpers.call_action('datastore_ts_create', **data)
 
 
     def _has_index_on_field(self, resource_id, field):
@@ -202,7 +202,7 @@ class TestDatastoreCreateNewTests(object):
             ]
         }
 
-        helpers.call_action('datastore_create', **data)
+        helpers.call_action('datastore_ts_create', **data)
 
         resource = helpers.call_action('resource_show', id=resource['id'])
 
@@ -221,9 +221,9 @@ class TestDatastoreCreateNewTests(object):
             ]
         }
 
-        helpers.call_action('datastore_create', **data)
+        helpers.call_action('datastore_ts_create', **data)
 
-        helpers.call_action('datastore_delete', resource_id=resource['id'],
+        helpers.call_action('datastore_ts_delete', resource_id=resource['id'],
                             force=True)
 
         resource = helpers.call_action('resource_show', id=resource['id'])
@@ -242,7 +242,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         cls.app = paste.fixture.TestApp(wsgiapp)
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        p.load('datastore')
+        p.load('datastore_ts')
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -255,7 +255,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
     @classmethod
     def teardown_class(cls):
         rebuild_all_dbs(cls.Session)
-        p.unload('datastore')
+        p.unload('datastore_ts')
 
     def test_create_requires_auth(self):
         resource = model.Package.get('annakarenina').resources[0]
@@ -263,7 +263,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
             'resource_id': resource.id
         }
         postparams = '%s=1' % json.dumps(data)
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             status=403)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -271,7 +271,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
     def test_create_empty_fails(self):
         postparams = '%s=1' % json.dumps({})
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -286,7 +286,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -299,7 +299,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -312,7 +312,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, status=200)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True
@@ -325,7 +325,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -338,7 +338,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -352,7 +352,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -370,7 +370,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
                            {'id': field_name, 'type': 'text'}]
             }
             postparams = '%s=1' % json.dumps(data)
-            res = self.app.post('/api/action/datastore_create', params=postparams,
+            res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                                 extra_environ=auth, status=409)
             res_dict = json.loads(res.body)
             assert res_dict['success'] is False
@@ -386,7 +386,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -401,7 +401,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
@@ -419,7 +419,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
@@ -436,7 +436,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -451,7 +451,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -466,7 +466,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True, res_dict
@@ -479,7 +479,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False, res_dict
@@ -507,7 +507,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -568,7 +568,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data2)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -603,7 +603,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data3)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -632,7 +632,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data4)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
@@ -649,7 +649,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data5)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, expect_errors=True)
         res_dict = json.loads(res.body)
 
@@ -683,7 +683,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data6)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, expect_errors=True)
         res_dict = json.loads(res.body)
 
@@ -704,7 +704,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data7)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, expect_errors=True)
         res_dict = json.loads(res.body)
 
@@ -719,7 +719,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data8)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, expect_errors=True)
         res_dict = json.loads(res.body)
 
@@ -742,7 +742,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.normal_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -770,7 +770,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_delete', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_delete', params=postparams,
                             extra_environ=auth, status="*")  # ignore status
         res_dict = json.loads(res.body)
 
@@ -787,7 +787,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -795,8 +795,10 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         results = c.execute('''select * from "{0}" '''.format(resource.id))
 
         types = [db._pg_types[field[1]] for field in results.cursor.description]
+        print(types)
 
-        assert types == [u'int4', u'tsvector', u'nested', u'int4', u'text', u'timestamp', u'float8'], types
+        assert types == [u'int4', u'tsvector', u'float8', u'nested', u'int4', u'text', u'timestamp', u'float8'], types
+                                               # autogen_timestamp
 
         assert results.rowcount == 3
         for i, row in enumerate(results):
@@ -824,7 +826,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -833,9 +835,10 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         self.Session.remove()
 
         types = [db._pg_types[field[1]] for field in results.cursor.description]
-
+        print(types)
         assert types == [u'int4',  # id
                          u'tsvector',  # fulltext
+                         u'float8', # autogen_timestamp
                          u'nested',  # author
                          u'int4',  # count
                          u'text',  # book
@@ -865,14 +868,14 @@ class TestDatastoreCreate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
         assert res_dict['success'] is False
 
-    def test_datastore_create_with_invalid_data_value(self):
-        """datastore_create() should return an error for invalid data."""
+    def test_datastore_ts_create_with_invalid_data_value(self):
+        """datastore_ts_create() should return an error for invalid data."""
         resource = factories.Resource(url_type="datastore")
         data_dict = {
             "resource_id": resource["id"],
@@ -891,7 +894,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data_dict)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 

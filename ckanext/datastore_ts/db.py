@@ -553,6 +553,7 @@ def _drop_indexes(context, data_dict, unique=False):
 def alter_table(context, data_dict):
     '''alter table from combination of fields and first row of data
     return: all fields of the resource table'''
+
     supplied_fields = data_dict.get('fields', [])
     current_fields = _get_fields(context, data_dict)
     if not supplied_fields:
@@ -565,6 +566,7 @@ def alter_table(context, data_dict):
     for num, field in enumerate(supplied_fields):
         # check to see if field definition is the same or and
         # extension of current fields
+
         if num < len(current_fields):
             if field['id'] != current_fields[num]['id']:
                 raise ValidationError({
@@ -629,8 +631,28 @@ def upsert_data(context, data_dict):
     method = data_dict.get('method', _UPSERT)
 
     fields = _get_fields(context, data_dict)
+    # Nam Giang: check if fields contain timestamp
+    autogen_timestamp = False
+    for f in fields:
+        if f['id'] == u'autogen_timestamp':
+            autogen_timestamp = True
+
+    if not autogen_timestamp:
+        raise ValidationError({
+                'resource': [u'resource does not have a timestamp column, should query via datastore_upsert']
+            })
+    # end Nam Giang
+
     field_names = _pluck('id', fields)
     records = data_dict['records']
+
+    # Nam Giang
+    import time
+    for r in records:
+        if isinstance(r, dict):
+            r['autogen_timestamp'] = time.time()
+    # end Nam Giang
+
     sql_columns = ", ".join(['"%s"' % name.replace(
         '%', '%%') for name in field_names] + ['"_full_text"'])
 

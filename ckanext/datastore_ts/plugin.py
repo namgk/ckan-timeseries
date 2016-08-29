@@ -127,9 +127,9 @@ class Datastore_TsPlugin(p.SingletonPlugin):
         if operation == model.domain_object.DomainObjectOperation.changed:
             context = {'model': model, 'ignore_auth': True}
             if entity.private:
-                func = p.toolkit.get_action('datastore_make_private')
+                func = p.toolkit.get_action('datastore_ts_make_private')
             else:
-                func = p.toolkit.get_action('datastore_make_public')
+                func = p.toolkit.get_action('datastore_ts_make_public')
             for resource in entity.resources:
                 try:
                     func(context, {
@@ -282,8 +282,8 @@ class Datastore_TsPlugin(p.SingletonPlugin):
                 controller='ckanext.datastore_ts.controller:DatastoreController',
                 action='dump', resource_id=resource_dict['id'])
 
-        if 'datastore_ts_active' not in resource_dict:
-            resource_dict[u'datastore_ts_active'] = False
+        if 'datastore_active' not in resource_dict:
+            resource_dict[u'datastore_active'] = False
 
         return resource_dict
 
