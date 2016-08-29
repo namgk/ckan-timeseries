@@ -269,8 +269,8 @@ class Datastore_TsPlugin(p.SingletonPlugin):
                 'datastore_ts_change_permissions': auth.datastore_change_permissions}
 
     def before_map(self, m):
-        m.connect('/datastore_ts/dump/{resource_id}',
-                  controller='ckanext.datastore_ts.controller:DatastoreController',
+        m.connect('/datastore/dump/{resource_id}',
+                  controller='ckanext.datastore.controller:DatastoreController',
                   action='dump')
         return m
 
@@ -279,7 +279,7 @@ class Datastore_TsPlugin(p.SingletonPlugin):
         # they link to the datastore dumps.
         if resource_dict.get('url_type') == 'datastore':
             resource_dict['url'] = p.toolkit.url_for(
-                controller='ckanext.datastore_ts.controller:DatastoreController',
+                controller='ckanext.datastore.controller:DatastoreController',
                 action='dump', resource_id=resource_dict['id'])
 
         if 'datastore_active' not in resource_dict:

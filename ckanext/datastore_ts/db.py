@@ -1027,6 +1027,11 @@ def _execute_single_statement(context, sql_string, where_values):
 def format_results(context, results, data_dict):
     result_fields = []
     for field in results.cursor.description:
+        # Nam Giang
+        if field[0].decode('utf-8') == u'autogen_timestamp':
+            continue
+        # end Nam Giang
+        
         result_fields.append({
             'id': field[0].decode('utf-8'),
             'type': _get_type(context, field[1])
