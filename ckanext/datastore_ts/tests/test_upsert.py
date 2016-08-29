@@ -47,7 +47,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
             }
         postparams = '%s=1' % json.dumps(cls.data)
         auth = {'Authorization': str(cls.sysadmin_user.apikey)}
-        res = cls.app.post('/api/action/datastore_create', params=postparams,
+        res = cls.app.post('/api/action/datastore_ts_create', params=postparams,
                            extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True
@@ -66,7 +66,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
             'resource_id': self.data['resource_id']
         }
         postparams = '%s=1' % json.dumps(data)
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             status=403)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -74,7 +74,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
     def test_upsert_empty_fails(self):
         postparams = '%s=1' % json.dumps({})
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -100,7 +100,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -131,7 +131,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -156,7 +156,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -180,7 +180,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -204,7 +204,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -219,7 +219,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
@@ -234,7 +234,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
@@ -253,17 +253,17 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True, res_dict
 
         c = self.Session.connection()
         results = c.execute('select * from "{0}"'.format(data['resource_id']))
-        record = [r for r in results.fetchall() if r[2] == hhguide]
+        record = [r for r in results.fetchall() if r[3] == hhguide] # r[2] is autogen_timestamp
         self.Session.remove()
         assert len(record) == 1, record
-        assert_equal(json.loads(record[0][4].json),
+        assert_equal(json.loads(record[0][5].json),
                      data['records'][0]['nested'])
 
 
@@ -276,7 +276,7 @@ class TestDatastoreInsert(tests.WsgiAppCase):
     def setup_class(cls):
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        p.load('datastore')
+        p.load('datastore_ts')
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -299,7 +299,7 @@ class TestDatastoreInsert(tests.WsgiAppCase):
             }
         postparams = '%s=1' % json.dumps(cls.data)
         auth = {'Authorization': str(cls.sysadmin_user.apikey)}
-        res = cls.app.post('/api/action/datastore_create', params=postparams,
+        res = cls.app.post('/api/action/datastore_ts_create', params=postparams,
                            extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True
@@ -310,7 +310,7 @@ class TestDatastoreInsert(tests.WsgiAppCase):
 
     @classmethod
     def teardown_class(cls):
-        p.unload('datastore')
+        p.unload('datastore_ts')
         rebuild_all_dbs(cls.Session)
 
     def test_insert_non_existing_field(self):
@@ -322,7 +322,7 @@ class TestDatastoreInsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
@@ -337,7 +337,7 @@ class TestDatastoreInsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
@@ -357,7 +357,7 @@ class TestDatastoreInsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -378,7 +378,7 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
     def setup_class(cls):
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        p.load('datastore')
+        p.load('datastore_ts')
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -406,7 +406,7 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
             }
         postparams = '%s=1' % json.dumps(cls.data)
         auth = {'Authorization': str(cls.sysadmin_user.apikey)}
-        res = cls.app.post('/api/action/datastore_create', params=postparams,
+        res = cls.app.post('/api/action/datastore_ts_create', params=postparams,
                            extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True
@@ -417,7 +417,7 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
 
     @classmethod
     def teardown_class(cls):
-        p.unload('datastore')
+        p.unload('datastore_ts')
         rebuild_all_dbs(cls.Session)
 
     def test_update_basic(self):
@@ -439,7 +439,7 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -468,7 +468,7 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -493,7 +493,7 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -518,7 +518,7 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
@@ -533,7 +533,7 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
@@ -548,7 +548,7 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_upsert', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
