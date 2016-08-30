@@ -63,7 +63,9 @@ class TestDatastore_TsSearch(tests.WsgiAppCase):
                        {'id': 'published'}],
             'records': [{'author': 'tolstoy5',
                         'published': '2005-03-05'},
-                        {'author': 'tolstoy6'}
+                        {'author': 'tolstoy6'},
+                        {'author': 'tolstoy7',
+                        'published': '2005-03-05'}
                        ]
         }
         cls.startdata = time.time()
@@ -124,7 +126,16 @@ class TestDatastore_TsSearch(tests.WsgiAppCase):
                                  u'author': u'tolstoy5'},
                                 {u'published': None,
                                  u'_id': 6,
-                                 u'author': u'tolstoy6'}]
+                                 u'author': u'tolstoy6'},
+                                 {u'published': u'2005-03-05T00:00:00',
+                                 u'_id': 7,
+                                 u'author': u'tolstoy7'}]
+        cls.expected_records1 = [{u'published': u'2005-03-01T00:00:00',
+                                 u'_id': 1,
+                                 u'author': u'tolstoy1'},
+                                {u'published': None,
+                                 u'_id': 2,
+                                 u'author': u'tolstoy2'}]
         cls.expected_records12 = [{u'published': u'2005-03-01T00:00:00',
                                  u'_id': 1,
                                  u'author': u'tolstoy1'},
@@ -148,7 +159,19 @@ class TestDatastore_TsSearch(tests.WsgiAppCase):
                                  u'author': u'tolstoy5'},
                                 {u'published': None,
                                  u'_id': 6,
-                                 u'author': u'tolstoy6'}]
+                                 u'author': u'tolstoy6'},
+                                 {u'published': u'2005-03-05T00:00:00',
+                                 u'_id': 7,
+                                 u'author': u'tolstoy7'}]
+        cls.expected_records3 = [{u'published': u'2005-03-05T00:00:00',
+                                 u'_id': 5,
+                                 u'author': u'tolstoy5'},
+                                {u'published': None,
+                                 u'_id': 6,
+                                 u'author': u'tolstoy6'},
+                                 {u'published': u'2005-03-05T00:00:00',
+                                 u'_id': 7,
+                                 u'author': u'tolstoy7'}]
 
         engine = db._get_engine(
                 {'connection_url': pylons.config['ckan.datastore.write_url']}
@@ -170,9 +193,6 @@ class TestDatastore_TsSearch(tests.WsgiAppCase):
         fromtime_str = datetime.fromtimestamp(self.startdata).strftime('%d-%m-%y_%H:%M:%S')
         totime_str = datetime.fromtimestamp(self.enddata2).strftime('%d-%m-%y_%H:%M:%S')
         
-        print(fromtime_str)
-        print(totime_str)
-
         data12 = {'resource_id': self.data['resource_id'],
                 'fromtime':fromtime_str,
                 'totime':totime_str
@@ -210,3 +230,121 @@ class TestDatastore_TsSearch(tests.WsgiAppCase):
         result = res_dict['result']
         assert result['total'] == len(self.data2['records']) + len(self.data3['records'])
         assert result['records'] == self.expected_records23, result['records']
+
+
+    def test_search_timeseries_fromtime(self):
+        from datetime import datetime
+        # TODO: support time zones
+        fromtime_str = datetime.fromtimestamp(self.startdata).strftime('%d-%m-%y_%H:%M:%S')
+        
+        data = {'resource_id': self.data['resource_id'],
+                'fromtime':fromtime_str
+        }
+
+        postparams = '%s=1' % json.dumps(data)
+        auth = {'Authorization': str(self.normal_user.apikey)}
+        res = self.app.post('/api/action/datastore_ts_search', params=postparams,
+                            extra_environ=auth)
+        res_dict = json.loads(res.body)
+
+        assert res_dict['success'] is True
+        result = res_dict['result']
+        assert result['total'] == len(self.data['records']) + len(self.data2['records']) + len(self.data3['records'])
+        assert result['records'] == self.expected_records, result['records']
+
+
+        fromtime_str2 = datetime.fromtimestamp(self.startdata2).strftime('%d-%m-%y_%H:%M:%S')
+        
+        data3456 = {'resource_id': self.data['resource_id'],
+                'fromtime':fromtime_str2
+        }
+
+        postparams = '%s=1' % json.dumps(data3456)
+        auth = {'Authorization': str(self.normal_user.apikey)}
+        res = self.app.post('/api/action/datastore_ts_search', params=postparams,
+                            extra_environ=auth)
+        res_dict = json.loads(res.body)
+
+        print(res_dict)
+        assert res_dict['success'] is True
+        result = res_dict['result']
+        assert result['total'] == len(self.data2['records']) + len(self.data3['records'])
+        assert result['records'] == self.expected_records23, result['records']
+
+
+        fromtime_str3 = datetime.fromtimestamp(self.startdata3).strftime('%d-%m-%y_%H:%M:%S')
+        
+        data56 = {'resource_id': self.data['resource_id'],
+                'fromtime':fromtime_str3
+        }
+
+        postparams = '%s=1' % json.dumps(data56)
+        auth = {'Authorization': str(self.normal_user.apikey)}
+        res = self.app.post('/api/action/datastore_ts_search', params=postparams,
+                            extra_environ=auth)
+        res_dict = json.loads(res.body)
+
+        print(res_dict)
+        assert res_dict['success'] is True
+        result = res_dict['result']
+        assert result['total'] == len(self.data3['records'])
+        assert result['records'] == self.expected_records3, result['records']
+
+
+
+    def test_search_timeseries_totime(self):
+        from datetime import datetime
+        # TODO: support time zones
+        totime_str = datetime.fromtimestamp(self.enddata).strftime('%d-%m-%y_%H:%M:%S')
+        
+        data12 = {'resource_id': self.data['resource_id'],
+                'totime':totime_str
+        }
+
+        postparams = '%s=1' % json.dumps(data12)
+        auth = {'Authorization': str(self.normal_user.apikey)}
+        res = self.app.post('/api/action/datastore_ts_search', params=postparams,
+                            extra_environ=auth)
+        res_dict = json.loads(res.body)
+
+        assert res_dict['success'] is True
+        result = res_dict['result']
+        assert result['total'] == len(self.data['records'])
+        assert result['records'] == self.expected_records1, result['records']
+
+
+
+        totime_str4 = datetime.fromtimestamp(self.enddata2).strftime('%d-%m-%y_%H:%M:%S')
+        
+        data1234 = {'resource_id': self.data['resource_id'],
+                'totime':totime_str4
+        }
+
+        postparams = '%s=1' % json.dumps(data1234)
+        auth = {'Authorization': str(self.normal_user.apikey)}
+        res = self.app.post('/api/action/datastore_ts_search', params=postparams,
+                            extra_environ=auth)
+        res_dict = json.loads(res.body)
+
+        assert res_dict['success'] is True
+        result = res_dict['result']
+        assert result['total'] == len(self.data['records']) + len(self.data2['records'])
+        assert result['records'] == self.expected_records12, result['records']
+
+
+        totime_str6 = datetime.fromtimestamp(self.enddata3).strftime('%d-%m-%y_%H:%M:%S')
+        
+        data123456 = {'resource_id': self.data['resource_id'],
+                'totime':totime_str6
+        }
+
+        postparams = '%s=1' % json.dumps(data123456)
+        auth = {'Authorization': str(self.normal_user.apikey)}
+        res = self.app.post('/api/action/datastore_ts_search', params=postparams,
+                            extra_environ=auth)
+        res_dict = json.loads(res.body)
+
+        assert res_dict['success'] is True
+        result = res_dict['result']
+        assert result['total'] == len(self.data['records']) + len(self.data2['records']) + len(self.data3['records'])
+        assert result['records'] == self.expected_records, result['records']
