@@ -941,7 +941,7 @@ def validate(context, data_dict, fields_types):
     del data_dict_copy['connection_url']
     del data_dict_copy['resource_id']
     data_dict_copy.pop('id', None)
-
+    
     for key, values in data_dict_copy.iteritems():
         if not values:
             continue

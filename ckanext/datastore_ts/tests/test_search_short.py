@@ -1,7 +1,7 @@
 import json
 import nose
 import pprint
-
+import time
 import pylons
 import sqlalchemy.orm as orm
 
@@ -19,92 +19,7 @@ import ckan.tests.factories as factories
 assert_equals = nose.tools.assert_equals
 assert_raises = nose.tools.assert_raises
 
-
-class TestDatastoreSearchNewTest(object):
-    @classmethod
-    def setup_class(cls):
-        p.load('datastore_ts')
-
-    @classmethod
-    def teardown_class(cls):
-        p.unload('datastore_ts')
-        helpers.reset_db()
-
-    def test_fts_on_field_calculates_ranks_only_on_that_specific_field(self):
-        resource = factories.Resource()
-        data = {
-            'resource_id': resource['id'],
-            'force': True,
-            'records': [
-                {'from': 'Brazil', 'to': 'Brazil'},
-                {'from': 'Brazil', 'to': 'Italy'}
-            ],
-        }
-        result = helpers.call_action('datastore_ts_create', **data)
-        search_data = {
-            'resource_id': resource['id'],
-            'fields': 'from',
-            'q': {
-                'from': 'Brazil'
-            },
-        }
-        result = helpers.call_action('datastore_ts_search', **search_data)
-        ranks = [r['rank from'] for r in result['records']]
-        assert_equals(len(result['records']), 2)
-        assert_equals(len(set(ranks)), 1)
-
-    def test_fts_works_on_non_textual_fields(self):
-        resource = factories.Resource()
-        data = {
-            'resource_id': resource['id'],
-            'force': True,
-            'records': [
-                {'from': 'Brazil', 'year': {'foo': 2014}},
-                {'from': 'Brazil', 'year': {'foo': 1986}}
-            ],
-        }
-        result = helpers.call_action('datastore_ts_create', **data)
-        search_data = {
-            'resource_id': resource['id'],
-            'fields': 'year',
-            'plain': False,
-            'q': {
-                'year': '20:*'
-            },
-        }
-        result = helpers.call_action('datastore_ts_search', **search_data)
-        assert_equals(len(result['records']), 1)
-        assert_equals(result['records'][0]['year'], {'foo': 2014})
-
-    def test_all_params_work_with_fields_with_whitespaces(self):
-        resource = factories.Resource()
-        data = {
-            'resource_id': resource['id'],
-            'force': True,
-            'records': [
-                {'the year': 2014},
-                {'the year': 2013},
-            ],
-        }
-        result = helpers.call_action('datastore_ts_create', **data)
-        search_data = {
-            'resource_id': resource['id'],
-            'fields': 'the year',
-            'sort': 'the year',
-            'filters': {
-                'the year': 2013
-            },
-            'q': {
-                'the year': '2013'
-            },
-        }
-        result = helpers.call_action('datastore_ts_search', **search_data)
-        result_years = [r['the year'] for r in result['records']]
-        assert_equals(result_years, [2013])
-
-
-
-class TestDatastoreSearch(tests.WsgiAppCase):
+class TestDatastore_TsSearch(tests.WsgiAppCase):
     sysadmin_user = None
     normal_user = None
 
@@ -122,25 +37,69 @@ class TestDatastoreSearch(tests.WsgiAppCase):
             'resource_id': cls.resource.id,
             'force': True,
             'aliases': 'books3',
-            'fields': [{'id': u'b\xfck', 'type': 'text'},
-                       {'id': 'author', 'type': 'text'},
-                       {'id': 'published'},
-                       {'id': u'characters', u'type': u'_text'},
-                       {'id': 'rating with %'}],
-            'records': [{u'b\xfck': 'annakarenina', 'author': 'tolstoy',
-                        'published': '2005-03-01', 'nested': ['b', {'moo': 'moo'}],
-                        u'characters': [u'Princess Anna', u'Sergius'],
-                        'rating with %': '60%'},
-                        {u'b\xfck': 'warandpeace', 'author': 'tolstoy',
-                        'nested': {'a': 'b'}, 'rating with %': '99%'}
+            'fields': [{'id': 'author', 'type': 'text'},
+                       {'id': 'published'}],
+            'records': [{'author': 'tolstoy1',
+                        'published': '2005-03-01'},
+                        {'author': 'tolstoy2'}
                        ]
         }
+        cls.data2 = {
+            'resource_id': cls.resource.id,
+            'force': True,
+            'aliases': 'books3',
+            'fields': [{'id': 'author', 'type': 'text'},
+                       {'id': 'published'}],
+            'records': [{'author': 'tolstoy3',
+                        'published': '2005-03-03'},
+                        {'author': 'tolstoy4'}
+                       ]
+        }
+        cls.data3 = {
+            'resource_id': cls.resource.id,
+            'force': True,
+            'aliases': 'books3',
+            'fields': [{'id': 'author', 'type': 'text'},
+                       {'id': 'published'}],
+            'records': [{'author': 'tolstoy5',
+                        'published': '2005-03-05'},
+                        {'author': 'tolstoy6'}
+                       ]
+        }
+        cls.startdata = time.time()
+        # python doesn't have sub-second timestamp precision!
+        time.sleep(1)
         postparams = '%s=1' % json.dumps(cls.data)
         auth = {'Authorization': str(cls.sysadmin_user.apikey)}
         res = cls.app.post('/api/action/datastore_ts_create', params=postparams,
                            extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True
+
+        time.sleep(1)
+        cls.enddata = time.time()
+        cls.startdata2 = time.time()
+        time.sleep(1)
+
+        postparams = '%s=1' % json.dumps(cls.data2)
+        res = cls.app.post('/api/action/datastore_ts_create', params=postparams,
+                           extra_environ=auth)
+        res_dict = json.loads(res.body)
+        assert res_dict['success'] is True
+
+        time.sleep(1)
+        cls.enddata2 = time.time()
+        cls.startdata3 = time.time()
+        time.sleep(1)
+
+        postparams = '%s=1' % json.dumps(cls.data3)
+        res = cls.app.post('/api/action/datastore_ts_create', params=postparams,
+                           extra_environ=auth)
+        res_dict = json.loads(res.body)
+        assert res_dict['success'] is True
+        
+        time.sleep(1)
+        cls.enddata3 = time.time()
 
         # Make an organization, because private datasets must belong to one.
         cls.organization = tests.call_action_api(
@@ -150,51 +109,104 @@ class TestDatastoreSearch(tests.WsgiAppCase):
 
         cls.expected_records = [{u'published': u'2005-03-01T00:00:00',
                                  u'_id': 1,
-                                 u'nested': [u'b', {u'moo': u'moo'}],
-                                 u'b\xfck': u'annakarenina',
-                                 u'author': u'tolstoy',
-                                 u'characters': [u'Princess Anna', u'Sergius'],
-                                 u'rating with %': u'60%'},
+                                 u'author': u'tolstoy1'},
                                 {u'published': None,
                                  u'_id': 2,
-                                 u'nested': {u'a': u'b'},
-                                 u'b\xfck': u'warandpeace',
-                                 u'author': u'tolstoy',
-                                 u'characters': None,
-                                 u'rating with %': u'99%'}]
+                                 u'author': u'tolstoy2'},
+                                 {u'published': u'2005-03-03T00:00:00',
+                                 u'_id': 3,
+                                 u'author': u'tolstoy3'},
+                                {u'published': None,
+                                 u'_id': 4,
+                                 u'author': u'tolstoy4'},
+                                 {u'published': u'2005-03-05T00:00:00',
+                                 u'_id': 5,
+                                 u'author': u'tolstoy5'},
+                                {u'published': None,
+                                 u'_id': 6,
+                                 u'author': u'tolstoy6'}]
+        cls.expected_records12 = [{u'published': u'2005-03-01T00:00:00',
+                                 u'_id': 1,
+                                 u'author': u'tolstoy1'},
+                                {u'published': None,
+                                 u'_id': 2,
+                                 u'author': u'tolstoy2'},
+                                 {u'published': u'2005-03-03T00:00:00',
+                                 u'_id': 3,
+                                 u'author': u'tolstoy3'},
+                                {u'published': None,
+                                 u'_id': 4,
+                                 u'author': u'tolstoy4'}]
+        cls.expected_records23 = [{u'published': u'2005-03-03T00:00:00',
+                                 u'_id': 3,
+                                 u'author': u'tolstoy3'},
+                                {u'published': None,
+                                 u'_id': 4,
+                                 u'author': u'tolstoy4'},
+                                 {u'published': u'2005-03-05T00:00:00',
+                                 u'_id': 5,
+                                 u'author': u'tolstoy5'},
+                                {u'published': None,
+                                 u'_id': 6,
+                                 u'author': u'tolstoy6'}]
 
         engine = db._get_engine(
                 {'connection_url': pylons.config['ckan.datastore.write_url']}
             )
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
 
+        # rebuild_all_dbs(cls.Session)
+        # time.sleep(3333)
+
+
     @classmethod
     def teardown_class(cls):
         rebuild_all_dbs(cls.Session)
         p.unload('datastore_ts')
 
-    def test_search_sort(self):
-        data = {'resource_id': self.data['resource_id'],
-                'sort': u'b\xfck asc, author desc'}
-        postparams = '%s=1' % json.dumps(data)
+    def test_search_timeseries(self):
+        from datetime import datetime
+        # TODO: support time zones
+        fromtime_str = datetime.fromtimestamp(self.startdata).strftime('%d-%m-%y_%H:%M:%S')
+        totime_str = datetime.fromtimestamp(self.enddata2).strftime('%d-%m-%y_%H:%M:%S')
+        
+        print(fromtime_str)
+        print(totime_str)
+
+        data12 = {'resource_id': self.data['resource_id'],
+                'fromtime':fromtime_str,
+                'totime':totime_str
+                # 'totime':str(self.enddata3)
+        }
+
+        postparams = '%s=1' % json.dumps(data12)
         auth = {'Authorization': str(self.normal_user.apikey)}
         res = self.app.post('/api/action/datastore_ts_search', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
+
+
         assert res_dict['success'] is True
         result = res_dict['result']
-        assert result['total'] == 2
+        assert result['total'] == len(self.data['records']) + len(self.data2['records'])
+        assert result['records'] == self.expected_records12, result['records']
 
-        assert result['records'] == self.expected_records, result['records']
+        fromtime_str23 = datetime.fromtimestamp(self.startdata2).strftime('%d-%m-%y_%H:%M:%S')
+        totime_str23 = datetime.fromtimestamp(self.enddata3).strftime('%d-%m-%y_%H:%M:%S')
+        
+        data23 = {'resource_id': self.data['resource_id'],
+                'fromtime':fromtime_str23,
+                'totime':totime_str23
+        }
 
-        data = {'resource_id': self.data['resource_id'],
-                'sort': [u'b\xfck desc', '"author" asc']}
-        postparams = '%s=1' % json.dumps(data)
+        postparams = '%s=1' % json.dumps(data23)
+        auth = {'Authorization': str(self.normal_user.apikey)}
         res = self.app.post('/api/action/datastore_ts_search', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
+
+        print(res_dict)
         assert res_dict['success'] is True
         result = res_dict['result']
-        assert result['total'] == 2
-
-        assert result['records'] == self.expected_records[::-1]
+        assert result['total'] == len(self.data2['records']) + len(self.data3['records'])
+        assert result['records'] == self.expected_records23, result['records']

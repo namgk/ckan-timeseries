@@ -343,6 +343,17 @@ class Datastore_TsPlugin(p.SingletonPlugin):
             if is_positive_int:
                 del data_dict['offset']
 
+        # Nam Giang
+        fromtime = data_dict.get('fromtime')
+        if fromtime:
+            if isinstance(fromtime, basestring):
+                del data_dict['fromtime']
+
+        totime = data_dict.get('totime')
+        if totime:
+            if isinstance(totime, basestring):
+                del data_dict['totime']
+        # end Nam Giang
         return data_dict
 
     def _parse_sort_clause(self, clause, fields_types):
@@ -408,6 +419,37 @@ class Datastore_TsPlugin(p.SingletonPlugin):
             else:
                 clause = (u'"{0}" = %s'.format(field), value)
             clauses.append(clause)
+
+        # Nam Giang
+        fromtime = data_dict.get('fromtime', {})
+        totime = data_dict.get('totime', {})
+        fromtimestamp = 0.0
+        totimestamp = 0.0
+
+        from datetime import datetime
+        import time
+        # TODO: support time zones
+        try:
+            if fromtime:
+                fromtime_object = datetime.strptime(fromtime, '%d-%m-%y_%H:%M:%S')
+                fromtimestamp = time.mktime(fromtime_object.timetuple())
+            if totime:
+                totime_object = datetime.strptime(totime, '%d-%m-%y_%H:%M:%S')
+                totimestamp = time.mktime(totime_object.timetuple())
+        except ValueError:
+            log.error('cannot parse time query')
+            pass
+
+        if fromtimestamp > 0:
+            clause = (u'"{0}" > %s'.format("autogen_timestamp"), fromtimestamp)
+            # clause = (u'"autogen_timestamp" > {0!s}'.format(fromtimestamp))
+            clauses.append(clause)
+        if totimestamp > 0:
+            clause = (u'"{0}" < %s'.format("autogen_timestamp"), totimestamp)
+            # clause = (u'"autogen_timestamp" < {0!s}'.format(totimestamp))
+            clauses.append(clause)
+
+        # end Nam Giang
 
         # add full-text search where clause
         q = data_dict.get('q')

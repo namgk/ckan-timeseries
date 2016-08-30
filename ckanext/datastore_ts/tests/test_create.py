@@ -795,7 +795,6 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         results = c.execute('''select * from "{0}" '''.format(resource.id))
 
         types = [db._pg_types[field[1]] for field in results.cursor.description]
-        print(types)
 
         assert types == [u'int4', u'tsvector', u'float8', u'nested', u'int4', u'text', u'timestamp', u'float8'], types
                                                # autogen_timestamp
@@ -835,7 +834,6 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         self.Session.remove()
 
         types = [db._pg_types[field[1]] for field in results.cursor.description]
-        print(types)
         assert types == [u'int4',  # id
                          u'tsvector',  # fulltext
                          u'float8', # autogen_timestamp
