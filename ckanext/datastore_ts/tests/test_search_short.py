@@ -47,9 +47,7 @@ class TestDatastore_TsSearch(tests.WsgiAppCase):
         cls.data2 = {
             'resource_id': cls.resource.id,
             'force': True,
-            'aliases': 'books3',
-            'fields': [{'id': 'author', 'type': 'text'},
-                       {'id': 'published'}],
+            'method': 'insert',
             'records': [{'author': 'tolstoy3',
                         'published': '2005-03-03'},
                         {'author': 'tolstoy4'}
@@ -58,9 +56,7 @@ class TestDatastore_TsSearch(tests.WsgiAppCase):
         cls.data3 = {
             'resource_id': cls.resource.id,
             'force': True,
-            'aliases': 'books3',
-            'fields': [{'id': 'author', 'type': 'text'},
-                       {'id': 'published'}],
+            'method': 'insert',
             'records': [{'author': 'tolstoy5',
                         'published': '2005-03-05'},
                         {'author': 'tolstoy6'},
@@ -84,7 +80,7 @@ class TestDatastore_TsSearch(tests.WsgiAppCase):
         time.sleep(1)
 
         postparams = '%s=1' % json.dumps(cls.data2)
-        res = cls.app.post('/api/action/datastore_ts_create', params=postparams,
+        res = cls.app.post('/api/action/datastore_ts_upsert', params=postparams,
                            extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True
@@ -95,7 +91,7 @@ class TestDatastore_TsSearch(tests.WsgiAppCase):
         time.sleep(1)
 
         postparams = '%s=1' % json.dumps(cls.data3)
-        res = cls.app.post('/api/action/datastore_ts_create', params=postparams,
+        res = cls.app.post('/api/action/datastore_ts_upsert', params=postparams,
                            extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True

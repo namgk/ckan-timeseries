@@ -441,11 +441,11 @@ class Datastore_TsPlugin(p.SingletonPlugin):
             pass
 
         if fromtimestamp > 0:
-            clause = (u'"{0}" > %s'.format("autogen_timestamp"), fromtimestamp)
+            clause = (u'"{0}" >= %s'.format("autogen_timestamp"), fromtimestamp)
             # clause = (u'"autogen_timestamp" > {0!s}'.format(fromtimestamp))
             clauses.append(clause)
         if totimestamp > 0:
-            clause = (u'"{0}" < %s'.format("autogen_timestamp"), totimestamp)
+            clause = (u'"{0}" <= %s'.format("autogen_timestamp"), totimestamp)
             # clause = (u'"autogen_timestamp" < {0!s}'.format(totimestamp))
             clauses.append(clause)
 

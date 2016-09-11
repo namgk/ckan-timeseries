@@ -25,7 +25,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
         p.load('datastore_ts')
-        # ctd.CreateTestData.create()
+        ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
         set_url_type(
@@ -62,12 +62,32 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
         rebuild_all_dbs(cls.Session)
         p.unload('datastore_ts')
 
-    def test_upsert_requires_auth(self):
+
+    def test_insert_timeseries(self):
+        hhguide = u"hitchhiker's guide to the galaxy"
         data = {
-            'resource_id': self.data['resource_id']
+            'resource_id': self.data['resource_id'],
+            'method': 'insert',
+            'records': [{
+                'author': 'adams',
+                'characters': ['Arthur Dent', 'Marvin'],
+                'nested': {'foo': 'bar', 'baz': 3},
+                u'b\xfck': hhguide}]
         }
+
         postparams = '%s=1' % json.dumps(data)
+        auth = {'Authorization': str(self.sysadmin_user.apikey)}
         res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
-                            status=403)
+                            extra_environ=auth)
         res_dict = json.loads(res.body)
-        assert res_dict['success'] is False
+
+        assert res_dict['success'] is True
+
+        c = self.Session.connection()
+        results = c.execute('select * from "{0}"'.format(self.data['resource_id']))
+        self.Session.remove()
+
+        for row in results:
+            assert 'autogen_timestamp' in row
+
+        assert results.rowcount == 3
