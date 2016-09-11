@@ -1,32 +1,3 @@
-.. You should enable this project on travis-ci.org and coveralls.io to make
-   these badges work. The necessary Travis and Coverage config files have been
-   generated for you.
-
-.. image:: https://travis-ci.org/namgk/ckanext-datastore_ts.svg?branch=master
-    :target: https://travis-ci.org/namgk/ckanext-datastore_ts
-
-.. image:: https://coveralls.io/repos/namgk/ckanext-datastore_ts/badge.svg
-  :target: https://coveralls.io/r/namgk/ckanext-datastore_ts
-
-.. image:: https://pypip.in/download/ckanext-datastore_ts/badge.svg
-    :target: https://pypi.python.org/pypi//ckanext-datastore_ts/
-    :alt: Downloads
-
-.. image:: https://pypip.in/version/ckanext-datastore_ts/badge.svg
-    :target: https://pypi.python.org/pypi/ckanext-datastore_ts/
-    :alt: Latest Version
-
-.. image:: https://pypip.in/py_versions/ckanext-datastore_ts/badge.svg
-    :target: https://pypi.python.org/pypi/ckanext-datastore_ts/
-    :alt: Supported Python versions
-
-.. image:: https://pypip.in/status/ckanext-datastore_ts/badge.svg
-    :target: https://pypi.python.org/pypi/ckanext-datastore_ts/
-    :alt: Development Status
-
-.. image:: https://pypip.in/license/ckanext-datastore_ts/badge.svg
-    :target: https://pypi.python.org/pypi/ckanext-datastore_ts/
-    :alt: License
 
 =============
 ckanext-datastore_ts
@@ -36,6 +7,7 @@ ckanext-datastore_ts
    What does it do? What features does it have?
    Consider including some screenshots or embedding a video!
 
+TODO: these docs are not modified from original datastore extension.
 
 ------------
 Requirements
