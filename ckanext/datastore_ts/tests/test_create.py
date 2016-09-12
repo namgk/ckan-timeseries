@@ -66,6 +66,51 @@ class TestDatastoreCreateNewTests(object):
         resource_id = result['resource_id']
         assert self._has_index_on_field(resource_id, '"author"')
 
+    def test_create_creates_index_on_autogen_timestamp(self):
+        package = factories.Dataset()
+        data = {
+            'resource': {
+                'boo%k': 'crime',
+                'author': ['tolstoy', 'dostoevsky'],
+                'package_id': package['id']
+            },
+            'fields': [{'id': 'book', 'type': 'text'},
+                       {'id': 'author', 'type': 'text'}]
+        }
+        result = helpers.call_action('datastore_ts_create', **data)
+        resource_id = result['resource_id']
+        assert self._has_index_on_field(resource_id, '"autogen_timestamp"')
+
+        data = {
+            'resource': {
+                'boo%k': 'crime',
+                'author': ['tolstoy', 'dostoevsky'],
+                'package_id': package['id']
+            },
+            'fields': [{'id': 'book', 'type': 'text'},
+                       {'id': 'author', 'type': 'text'}],
+            'indexes': 'book'
+        }
+        result = helpers.call_action('datastore_ts_create', **data)
+        resource_id = result['resource_id']
+        assert self._has_index_on_field(resource_id, '"book"')
+        assert self._has_index_on_field(resource_id, '"autogen_timestamp"')
+
+        data = {
+            'resource': {
+                'boo%k': 'crime',
+                'author': ['tolstoy', 'dostoevsky'],
+                'package_id': package['id']
+            },
+            'fields': [{'id': 'book', 'type': 'text'},
+                       {'id': 'author', 'type': 'text'}],
+            'indexes': ['author']
+        }
+        result = helpers.call_action('datastore_ts_create', **data)
+        resource_id = result['resource_id']
+        assert self._has_index_on_field(resource_id, '"author"')
+        assert self._has_index_on_field(resource_id, '"autogen_timestamp"')
+
     def test_create_adds_index_on_full_text_search_when_creating_other_indexes(self):
         package = factories.Dataset()
         data = {

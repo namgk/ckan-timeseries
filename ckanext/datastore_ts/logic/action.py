@@ -69,6 +69,14 @@ def datastore_create(context, data_dict):
     # Timeseries stuff 
     if 'fields' in data_dict:
         data_dict['fields'].insert(0,{'id': u'autogen_timestamp', 'type': 'float'})
+        if 'indexes' in data_dict:
+            if isinstance(data_dict['indexes'], list):
+                data_dict['indexes'].insert(0,u'autogen_timestamp')
+            else:
+                current_idx = data_dict['indexes']
+                data_dict['indexes'] = [current_idx, u'autogen_timestamp']
+        else:
+            data_dict['indexes'] = u'autogen_timestamp'
 
     if 'records' in data_dict:
         import time
