@@ -8,6 +8,7 @@ import sqlalchemy.engine.url as sa_url
 import ckan.plugins as p
 import ckan.logic as logic
 import ckan.model as model
+import ckanext.datastore_ts.controller.resource_controller as resource_controller
 import ckanext.datastore_ts.logic.action as action
 import ckanext.datastore_ts.logic.auth as auth
 import ckanext.datastore_ts.db as db
@@ -50,6 +51,7 @@ class Datastore_TsPlugin(p.SingletonPlugin):
     p.implements(p.IActions)
     p.implements(p.IAuthFunctions)
     p.implements(p.IResourceUrlChange)
+    p.implements(p.IResourceController)
     p.implements(p.IDomainObjectModification, inherit=True)
     p.implements(p.IRoutes, inherit=True)
     p.implements(p.IResourceController, inherit=True)
@@ -251,6 +253,11 @@ class Datastore_TsPlugin(p.SingletonPlugin):
             connection.execute(create_alias_table_sql)
         finally:
             connection.close()
+
+    def before_create(self, context, resource):
+        resource_controller.before_create(context, resource)
+    def after_create(self, context, resource):
+        resource_controller.after_create(context, resource)
 
     def get_actions(self):
         actions = {'datastore_ts_create': action.datastore_create,

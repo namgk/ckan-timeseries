@@ -7,6 +7,7 @@ import ckan.lib.base as base
 import ckan.lib.navl.dictization_functions
 import ckan.logic as logic
 import ckan.plugins as p
+import ckan.plugins as plugins
 import ckanext.datastore_ts.db as db
 import ckanext.datastore_ts.logic.schema as dsschema
 import ckanext.datastore_ts.helpers as datastore_helpers
@@ -16,7 +17,6 @@ _get_or_bust = logic.get_or_bust
 _validate = ckan.lib.navl.dictization_functions.validate
 
 WHITELISTED_RESOURCES = ['_table_metadata']
-
 
 def datastore_create(context, data_dict):
     '''Adds a new table to the DataStore.
@@ -116,6 +116,8 @@ def datastore_create(context, data_dict):
 
         resource_dict = p.toolkit.get_action('resource_create')(
             context, data_dict['resource'])
+        log.debug('creating via datastore ........')
+        log.debug('{}'.format(data_dict))
         data_dict['resource_id'] = resource_dict['id']
 
         # create resource from file
