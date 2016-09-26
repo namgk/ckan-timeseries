@@ -116,8 +116,6 @@ def datastore_create(context, data_dict):
 
         resource_dict = p.toolkit.get_action('resource_create')(
             context, data_dict['resource'])
-        log.debug('creating via datastore ........')
-        log.debug('{}'.format(data_dict))
         data_dict['resource_id'] = resource_dict['id']
 
         # create resource from file
