@@ -1,0 +1,22 @@
+{% import 'macros/form.html' as form %}
+
+<!-- {{ form.custom(
+  names=('custom_key', 'custom_value', 'custom_deleted'),
+  id='field-custom',
+  label=_('Custom Field'),
+  values=(extra.key, extra.value, extra.deleted),
+  error=''
+) }} -->
+
+{% for extra in extras %}
+  {% set prefix = 'extras__%d__' % loop.index0 %}
+  {{ form.input(
+    names=(prefix ~ 'key', prefix ~ 'value', prefix ~ 'deleted'),
+    id='field-extras-%d' % loop.index,
+    label=_('Custom Field'),
+    values=(extra.key, extra.value, extra.deleted),
+    error=errors[prefix ~ 'key'] or errors[prefix ~ 'value']
+  ) }}
+{% endfor %}
+
+{{ form.input('field', id='field-last-modified', label=_('Last Modified'), placeholder=_('eg. 2012-06-05'), value=data.last_modified, error=errors.last_modified, classes=[]) }}

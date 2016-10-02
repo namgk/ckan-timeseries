@@ -1,4 +1,6 @@
 import logging
+import datetime
+import pytz
 
 import pylons
 import sqlalchemy
@@ -68,21 +70,20 @@ def datastore_create(context, data_dict):
     # Nam Giang
     # Timeseries stuff 
     if 'fields' in data_dict:
-        data_dict['fields'].insert(0,{'id': u'autogen_timestamp', 'type': 'float'})
-        if 'indexes' in data_dict:
-            if isinstance(data_dict['indexes'], list):
-                data_dict['indexes'].insert(0,u'autogen_timestamp')
-            else:
-                current_idx = data_dict['indexes']
-                data_dict['indexes'] = [current_idx, u'autogen_timestamp']
-        else:
-            data_dict['indexes'] = u'autogen_timestamp'
+        data_dict['fields'].insert(0,{'id': u'autogen_timestamp', 'type': 'timestamp with time zone'})
+        # if 'indexes' in data_dict:
+        #     if isinstance(data_dict['indexes'], list):
+        #         data_dict['indexes'].insert(0,u'autogen_timestamp')
+        #     else:
+        #         current_idx = data_dict['indexes']
+        #         data_dict['indexes'] = [current_idx, u'autogen_timestamp']
+        # else:
+        #     data_dict['indexes'] = u'autogen_timestamp'
 
     if 'records' in data_dict:
-        import time
         for r in data_dict['records']:
             if isinstance(r, dict):
-                r['autogen_timestamp'] = time.time()
+                r['autogen_timestamp'] = datastore_helpers.utcnow()
     # end Nam Giang
 
     schema = context.get('schema', dsschema.datastore_create_schema())
@@ -177,17 +178,7 @@ def datastore_create(context, data_dict):
     result.pop('private', None)
     result.pop('connection_url')
 
-    # Nam Giang
-    def dict_rm_autogen_timestamp(dict):
-        if dict[u'autogen_timestamp']:
-            dict.pop(u'autogen_timestamp', None)
-        return dict
-
-    if 'fields' in result:
-        result['fields'][:] = [f for f in result['fields'] if f.get('id') != u'autogen_timestamp']
-    if 'records' in result:
-        result['records'] = map(dict_rm_autogen_timestamp, result['records'])
-    # end Nam
+    datastore_helpers.remove_autogen(result)
 
     return result
 
@@ -257,6 +248,7 @@ def datastore_upsert(context, data_dict):
     result = db.upsert(context, data_dict)
     result.pop('id', None)
     result.pop('connection_url')
+    datastore_helpers.remove_autogen(result)
     return result
 
 
@@ -398,6 +390,7 @@ def datastore_delete(context, data_dict):
 
     result.pop('id', None)
     result.pop('connection_url')
+    datastore_helpers.remove_autogen(result)
     return result
 
 
@@ -490,6 +483,7 @@ def datastore_search(context, data_dict):
     result = db.search(context, data_dict)
     result.pop('id', None)
     result.pop('connection_url')
+    datastore_helpers.remove_autogen(result)
     return result
 
 
@@ -536,6 +530,8 @@ def datastore_search_sql(context, data_dict):
     result = db.search_sql(context, data_dict)
     result.pop('id', None)
     result.pop('connection_url')
+
+    datastore_helpers.remove_autogen(result)
     return result
 
 

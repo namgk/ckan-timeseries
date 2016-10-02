@@ -41,6 +41,16 @@
         </span>
       {% endcall %}
     {% endblock %}
+
+
+    {#% resource 'datastore_ts/datastore_resource.js' %}
+    {% block basic_fields_datastore %}
+      {% call form.checkbox('datastore', label=_('Is Datastore Resources'), checked=false, value=data.isdatastore) %}
+      {% endcall %}
+    {% endblock %}
+
+    {{ h.snippet('package/snippets/datastore_fields.html', extra={"key":"tk", "value":"tv","delete":"td"}) }#}
+
   {% endblock basic_fields %}
 
   {% block metadata_fields %}

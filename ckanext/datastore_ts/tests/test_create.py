@@ -79,7 +79,7 @@ class TestDatastoreCreateNewTests(object):
         }
         result = helpers.call_action('datastore_ts_create', **data)
         resource_id = result['resource_id']
-        assert self._has_index_on_field(resource_id, '"autogen_timestamp"')
+        assert self._has_index_on_field(resource_id, u'autogen_timestamp')
 
         data = {
             'resource': {
@@ -94,7 +94,7 @@ class TestDatastoreCreateNewTests(object):
         result = helpers.call_action('datastore_ts_create', **data)
         resource_id = result['resource_id']
         assert self._has_index_on_field(resource_id, '"book"')
-        assert self._has_index_on_field(resource_id, '"autogen_timestamp"')
+        assert self._has_index_on_field(resource_id, u'autogen_timestamp')
 
         data = {
             'resource': {
@@ -109,7 +109,7 @@ class TestDatastoreCreateNewTests(object):
         result = helpers.call_action('datastore_ts_create', **data)
         resource_id = result['resource_id']
         assert self._has_index_on_field(resource_id, '"author"')
-        assert self._has_index_on_field(resource_id, '"autogen_timestamp"')
+        assert self._has_index_on_field(resource_id, u'autogen_timestamp')
 
     def test_create_adds_index_on_full_text_search_when_creating_other_indexes(self):
         package = factories.Dataset()
@@ -841,7 +841,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
 
         types = [db._pg_types[field[1]] for field in results.cursor.description]
 
-        assert types == [u'int4', u'tsvector', u'float8', u'nested', u'int4', u'text', u'timestamp', u'float8'], types
+        assert types == [u'int4', u'tsvector', u'timestamptz', u'nested', u'int4', u'text', u'timestamp', u'float8'], types
                                                # autogen_timestamp
 
         assert results.rowcount == 3
@@ -881,7 +881,7 @@ class TestDatastoreCreate(tests.WsgiAppCase):
         types = [db._pg_types[field[1]] for field in results.cursor.description]
         assert types == [u'int4',  # id
                          u'tsvector',  # fulltext
-                         u'float8', # autogen_timestamp
+                         u'timestamptz', # autogen_timestamp
                          u'nested',  # author
                          u'int4',  # count
                          u'text',  # book

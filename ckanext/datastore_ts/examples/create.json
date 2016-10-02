@@ -1,0 +1,16 @@
+{
+  "resource": {
+    "name": "test2",
+    "package_id": "vancouver-bc"
+  },
+  "fields": [
+    {
+        "id": "lat",
+        "type": "float"
+    },
+    {
+        "id": "lon",
+        "type": "float"
+    }
+  ]
+}

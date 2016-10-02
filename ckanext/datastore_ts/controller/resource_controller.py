@@ -9,11 +9,11 @@ import ckanext.datastore_ts.db as db
 log = logging.getLogger(__name__)
 _get_or_bust = logic.get_or_bust
 def before_create(context, resource):
-  # log.debug('before create ................' )
+  log.debug('before create ................' )
   # {'description': u'', 'format': u'', 'url': u'1', 
   #   'package_id': u'testset', 'name': u'1'}
-  resource['url'] = '_datastore_only_resource'
-  log.debug('{}'.format(resource))
+  # resource['url'] = '_datastore_only_resource'
+  # log.debug('{}'.format(resource))
 
 
 def after_create(context, resource):
@@ -32,18 +32,18 @@ def after_create(context, resource):
   #   u'last_modified': None, u'position': 3, 
   #   u'revision_id': u'4d28cba7-b49e-413f-95e3-e9332e60f57a', 
   #   u'resource_type': None}
-  resource['url_type'] = 'datastore'
-  resource['datastore_active'] = True
-  p.toolkit.get_action('resource_update')(context, resource)
+  # resource['url_type'] = 'datastore'
+  # resource['datastore_active'] = True
+  # p.toolkit.get_action('resource_update')(context, resource)
 
-  data_dict = {'resource': resource, 'resource_id': resource['id']}
-  data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
+  # data_dict = {'resource': resource, 'resource_id': resource['id']}
+  # data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
 
-  model = _get_or_bust(context, 'model')
-  resource = model.Resource.get(data_dict['resource_id'])
-  legacy_mode = 'ckan.datastore.read_url' not in pylons.config
-  if not legacy_mode and resource.package.private:
-    data_dict['private'] = True
+  # model = _get_or_bust(context, 'model')
+  # resource = model.Resource.get(data_dict['resource_id'])
+  # legacy_mode = 'ckan.datastore.read_url' not in pylons.config
+  # if not legacy_mode and resource.package.private:
+  #   data_dict['private'] = True
 
-  result = db.create(context, data_dict)
-  log.debug('{}'.format(result))
+  # result = db.create(context, data_dict)
+  # log.debug('{}'.format(result))

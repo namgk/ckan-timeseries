@@ -4,13 +4,47 @@ import pylons
 import sqlalchemy.orm as orm
 import nose
 
-import ckanext.datastore.helpers as datastore_helpers
-import ckanext.datastore.tests.helpers as datastore_test_helpers
-import ckanext.datastore.db as db
+import datetime
+import ckanext.datastore_ts.helpers as datastore_helpers
+import ckanext.datastore_ts.tests.helpers as datastore_test_helpers
+import ckanext.datastore_ts.db as db
 
 
 eq_ = nose.tools.eq_
 
+class TestTimestamp(object):
+    def test_timestamp_from_string(self):
+        a_str = "2016-10-02T03:40:21.019793+00:00"
+        print(datastore_helpers.timestamp_from_string(a_str))
+
+        now = datastore_helpers.utcnow()
+
+        a_str = "last 2s"
+        expected = now - datetime.timedelta(seconds=2)
+        parsed = datastore_helpers.timestamp_from_string(a_str)
+        assert parsed.replace(microsecond=0) == expected.replace(microsecond=0)
+
+        a_str = "last 10m"
+        expected = now - datetime.timedelta(minutes=10)
+        parsed = datastore_helpers.timestamp_from_string(a_str)
+        assert parsed.replace(microsecond=0) == expected.replace(microsecond=0)
+
+        a_str = "last 10m,5s"
+        expected = now - datetime.timedelta(seconds=5, minutes=10)
+        parsed = datastore_helpers.timestamp_from_string(a_str)
+        assert parsed.replace(microsecond=0) == expected.replace(microsecond=0)
+
+        a_str = "last 10m,1h,5s"
+        expected = now - datetime.timedelta(hours=1, seconds=5, minutes=10)
+        parsed = datastore_helpers.timestamp_from_string(a_str)
+        assert parsed.replace(microsecond=0) == expected.replace(microsecond=0)
+
+        a_str = "last 10d,1h,5s"
+        expected = now - datetime.timedelta(hours=1, seconds=5, days=10)
+        parsed = datastore_helpers.timestamp_from_string(a_str)
+        assert parsed.replace(microsecond=0) == expected.replace(microsecond=0)
+
+        assert False
 
 class TestTypeGetters(object):
     def test_get_list(self):

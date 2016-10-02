@@ -400,6 +400,26 @@ def create_alias(context, data_dict):
                     'alias': [u'"{0}" already exists'.format(alias)]
                 })
 
+def create_timestamp_index(context, data_dict):
+    if 'fields' not in data_dict:
+        return
+
+    connection = context['connection']
+    resource_id = data_dict['resource_id']
+    field_str = u'autogen_timestamp'
+    index_method = 'btree' or 'gist'
+    name = _generate_index_name(resource_id, field_str)
+
+    sql_index_tmpl = u'CREATE {unique} INDEX "{name}" ON "{res_id}"'
+    sql_index_string_method = sql_index_tmpl + u' USING {method}({fields})'
+    sql_index_string_method = sql_index_string_method.format(
+            res_id=resource_id,
+            unique='',
+            name=name,
+            method=index_method, fields=field_str)
+    current_indexes = _get_index_names(context['connection'], resource_id)
+    if name not in current_indexes:
+        connection.execute(sql_index_string_method)
 
 def create_indexes(context, data_dict):
     connection = context['connection']
@@ -650,7 +670,7 @@ def upsert_data(context, data_dict):
     import time
     for r in records:
         if isinstance(r, dict):
-            r['autogen_timestamp'] = time.time()
+            r['autogen_timestamp'] = datastore_helpers.utcnow()
     # end Nam Giang
 
     sql_columns = ", ".join(['"%s"' % name.replace(
@@ -824,6 +844,13 @@ def _to_full_text(fields, record):
     ft_types = ['int8', 'int4', 'int2', 'float4', 'float8', 'date', 'time',
                 'timetz', 'timestamp', 'numeric', 'text']
     for field in fields:
+        try:
+            fname = field['id'].decode('utf-8')
+            if fname == u'autogen_timestamp':
+                continue
+        except:
+            pass 
+
         value = record.get(field['id'])
         if not value:
             continue
@@ -1028,8 +1055,8 @@ def format_results(context, results, data_dict):
     result_fields = []
     for field in results.cursor.description:
         # Nam Giang
-        if field[0].decode('utf-8') == u'autogen_timestamp':
-            continue
+        # if field[0].decode('utf-8') == u'autogen_timestamp':
+        #     continue
         # end Nam Giang
         
         result_fields.append({
@@ -1100,6 +1127,7 @@ def create(context, data_dict):
             alter_table(context, data_dict)
         insert_data(context, data_dict)
         create_indexes(context, data_dict)
+        create_timestamp_index(context, data_dict)
         create_alias(context, data_dict)
         if data_dict.get('private'):
             _change_privilege(context, data_dict, 'REVOKE')

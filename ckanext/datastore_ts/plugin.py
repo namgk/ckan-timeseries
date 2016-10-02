@@ -438,34 +438,24 @@ class Datastore_TsPlugin(p.SingletonPlugin):
             clauses.append(clause)
 
         # Nam Giang
-        fromtime = data_dict.get('fromtime', {})
-        totime = data_dict.get('totime', {})
-        fromtimestamp = 0.0
-        totimestamp = 0.0
+        fromtime = data_dict.get('fromtime', None)
+        totime = data_dict.get('totime', None)
 
-        from datetime import datetime
-        import time
-        # TODO: support time zones
         try:
-            if fromtime:
-                fromtime_object = datetime.strptime(fromtime, '%d-%m-%y_%H:%M:%S')
-                fromtimestamp = time.mktime(fromtime_object.timetuple())
-            if totime:
-                totime_object = datetime.strptime(totime, '%d-%m-%y_%H:%M:%S')
-                totimestamp = time.mktime(totime_object.timetuple())
-        except ValueError:
-            log.error('cannot parse time query')
-            pass
-
-        if fromtimestamp > 0:
-            clause = (u'"{0}" >= %s'.format("autogen_timestamp"), fromtimestamp)
-            # clause = (u'"autogen_timestamp" > {0!s}'.format(fromtimestamp))
-            clauses.append(clause)
-        if totimestamp > 0:
-            clause = (u'"{0}" <= %s'.format("autogen_timestamp"), totimestamp)
-            # clause = (u'"autogen_timestamp" < {0!s}'.format(totimestamp))
-            clauses.append(clause)
-
+            if fromtime is not None:
+                fromtime_postgres = datastore_helpers.timestamp_from_string(fromtime)
+                clause = (u'"{0}" >= %s'.format("autogen_timestamp"), fromtime_postgres)
+                clauses.append(clause)
+                # print(clause)
+            if totime is not None:
+                totime_postgres = datastore_helpers.timestamp_from_string(totime)
+                clause = (u'"{0}" <= %s'.format("autogen_timestamp"), totime_postgres)
+                clauses.append(clause)
+                # print(clause)
+        except:
+            raise ValidationError({
+                    'fields': [u'input time string not valid, fromTime: {}, toTime: {}'.format(fromtime, totime)]
+                })
         # end Nam Giang
 
         # add full-text search where clause
