@@ -25,7 +25,7 @@ class TestDatastoreDump(object):
         cls.app = paste.fixture.TestApp(wsgiapp)
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        p.load('datastore')
+        p.load('datastore_ts')
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -48,7 +48,7 @@ class TestDatastoreDump(object):
         }
         postparams = '%s=1' % json.dumps(cls.data)
         auth = {'Authorization': str(cls.sysadmin_user.apikey)}
-        res = cls.app.post('/api/action/datastore_create', params=postparams,
+        res = cls.app.post('/api/action/datastore_ts_create', params=postparams,
                            extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True
@@ -60,14 +60,14 @@ class TestDatastoreDump(object):
     @classmethod
     def teardown_class(cls):
         helpers.rebuild_all_dbs(cls.Session)
-        p.unload('datastore')
+        p.unload('datastore_ts')
 
     def test_dump_basic(self):
         auth = {'Authorization': str(self.normal_user.apikey)}
         res = self.app.get('/datastore/dump/{0}'.format(str(
             self.data['resource_id'])), extra_environ=auth)
         content = res.body.decode('utf-8')
-        expected = u'_id,b\xfck,author,published,characters,nested'
+        expected = u'_id,autogen_timestamp,b\xfck,author,published,characters,nested'
         assert_equals(content[:len(expected)], expected)
         assert 'warandpeace' in content
         assert "[u'Princess Anna', u'Sergius']" in content
@@ -86,6 +86,6 @@ class TestDatastoreDump(object):
         res = self.app.get('/datastore/dump/{0}?limit=1'.format(str(
             self.data['resource_id'])), extra_environ=auth)
         content = res.body.decode('utf-8')
-        expected = u'_id,b\xfck,author,published,characters,nested'
+        expected = u'_id,autogen_timestamp,b\xfck,author,published,characters,nested'
         assert_equals(content[:len(expected)], expected)
-        assert_equals(len(content), 148)
+        assert_equals(len(content), 199) # including autogen_timestamp

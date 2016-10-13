@@ -10,8 +10,8 @@ import ckan.lib.create_test_data as ctd
 import ckan.model as model
 import ckan.tests.legacy as tests
 
-import ckanext.datastore.db as db
-from ckanext.datastore.tests.helpers import rebuild_all_dbs, set_url_type
+import ckanext.datastore_ts.db as db
+from ckanext.datastore_ts.tests.helpers import rebuild_all_dbs, set_url_type
 
 
 class TestDatastoreDelete(tests.WsgiAppCase):
@@ -23,7 +23,7 @@ class TestDatastoreDelete(tests.WsgiAppCase):
     def setup_class(cls):
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
-        p.load('datastore')
+        p.load('datastore_ts')
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -49,12 +49,12 @@ class TestDatastoreDelete(tests.WsgiAppCase):
     @classmethod
     def teardown_class(cls):
         rebuild_all_dbs(cls.Session)
-        p.unload('datastore')
+        p.unload('datastore_ts')
 
     def _create(self):
         postparams = '%s=1' % json.dumps(self.data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_create', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_create', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True
@@ -64,7 +64,7 @@ class TestDatastoreDelete(tests.WsgiAppCase):
         data = {'resource_id': self.data['resource_id']}
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_delete', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_delete', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True
@@ -100,7 +100,7 @@ class TestDatastoreDelete(tests.WsgiAppCase):
     def test_delete_invalid_resource_id(self):
         postparams = '%s=1' % json.dumps({'resource_id': 'bad'})
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_delete', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_delete', params=postparams,
                             extra_environ=auth, status=404)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -114,7 +114,7 @@ class TestDatastoreDelete(tests.WsgiAppCase):
                 'filters': {'book': 'warandpeace'}}
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_delete', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_delete', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True
@@ -131,7 +131,7 @@ class TestDatastoreDelete(tests.WsgiAppCase):
                 'filters': {'book': 'annakarenina', 'author': 'bad'}}
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_delete', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_delete', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True
@@ -148,7 +148,7 @@ class TestDatastoreDelete(tests.WsgiAppCase):
                 'filters': {'book': 'annakarenina', 'author': 'tolstoy'}}
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_delete', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_delete', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True
@@ -172,7 +172,7 @@ class TestDatastoreDelete(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.normal_user.apikey)}
-        res = self.app.post('/api/action/datastore_delete', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_delete', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -189,7 +189,7 @@ class TestDatastoreDelete(tests.WsgiAppCase):
         }
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.normal_user.apikey)}
-        res = self.app.post('/api/action/datastore_delete', params=postparams,
+        res = self.app.post('/api/action/datastore_ts_delete', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -201,7 +201,7 @@ class TestDatastoreDelete(tests.WsgiAppCase):
         self._create()
 
         res = self.app.post(
-            '/api/action/datastore_delete',
+            '/api/action/datastore_ts_delete',
             params='{0}=1'.format(
                 json.dumps({
                     'resource_id': self.data['resource_id'],
@@ -218,7 +218,7 @@ class TestDatastoreDelete(tests.WsgiAppCase):
         assert(results['success'] is True)
 
         res = self.app.post(
-            '/api/action/datastore_search',
+            '/api/action/datastore_ts_search',
             params='{0}=1'.format(
                 json.dumps({
                     'resource_id': self.data['resource_id'],

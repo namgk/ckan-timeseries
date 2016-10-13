@@ -514,7 +514,6 @@ def _build_fts_indexes(connection, data_dict, sql_index_str_method, fields):
             unique='',
             name=_generate_index_name(resource_id, field_str),
             method=_get_fts_index_method(), fields=field_str))
-
     return fts_indexes
 
 
@@ -651,7 +650,7 @@ def upsert_data(context, data_dict):
     method = data_dict.get('method', _UPSERT)
 
     fields = _get_fields(context, data_dict)
-    # Nam Giang: check if fields contain timestamp
+    # Nam Giang: check if database fields contain timestamp
     autogen_timestamp = False
     for f in fields:
         if f['id'] == u'autogen_timestamp':
@@ -667,7 +666,6 @@ def upsert_data(context, data_dict):
     records = data_dict['records']
 
     # Nam Giang
-    import time
     for r in records:
         if isinstance(r, dict):
             r['autogen_timestamp'] = datastore_helpers.utcnow()
@@ -926,7 +924,8 @@ def _insert_links(data_dict, limit, offset):
 
 
 def delete_data(context, data_dict):
-    validate(context, data_dict)
+    fields_types = _get_fields_types(context, data_dict)
+    validate(context, data_dict, fields_types)
     fields_types = _get_fields_types(context, data_dict)
 
     query_dict = {
