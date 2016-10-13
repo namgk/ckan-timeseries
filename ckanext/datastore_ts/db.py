@@ -665,6 +665,12 @@ def upsert_data(context, data_dict):
     field_names = _pluck('id', fields)
     records = data_dict['records']
 
+    # sanity checking
+    if not isinstance(records, list):
+        raise ValidationError({
+                'records': [u'"records is not a list']
+            })
+
     # Nam Giang
     for r in records:
         if isinstance(r, dict):
@@ -823,7 +829,7 @@ def _validate_record(record, num, field_names):
     # check record for sanity
     if not isinstance(record, dict):
         raise ValidationError({
-            'records': [u'row "{0}" is not a json object'.format(num)]
+            'records': [u'row "{0}" is not a json object'.format(num + 1)] # num + 1 or num?
         })
     ## check for extra fields in data
     extra_keys = set(record.keys()) - set(field_names)
