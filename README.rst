@@ -3,19 +3,18 @@
 ckanext-datastore_ts
 =============
 
-.. Put a description of your extension here:
-   What does it do? What features does it have?
-   Consider including some screenshots or embedding a video!
+Timeseries data is streams of data that is indexed by timestamp, such as sensing data. Current default CKAN Datastore plugin only index data based on an auto-incremental integer with no support for timeseries data. Perceived that timeseries data is an important capability when working with sensor network, a new plugin that supports operations based on timestamp natively would be necessary. Thus, the purpose of this repository.
 
-TODO: these docs are not modified from original datastore extension.
 
 ------------
 Requirements
 ------------
 
-For example, you might want to mention here which versions of CKAN this
-extension works with.
+Being developed under CKAN 2.5.2
 
+Requires iso8601:
+
+``` pip install iso8601 ```
 
 ------------
 Installation
@@ -47,12 +46,13 @@ To install ckanext-datastore_ts:
 ---------------
 Config Settings
 ---------------
+Datastore_ts uses configurations from Datastore plugin so make sure those are set. In brief:
 
-Document any optional config settings here. For example::
+sqlalchemy.url = postgresql://ckan_default:pass@localhost/ckan_default
 
-    # The minimum number of hours to wait before re-checking a resource
-    # (optional, default: 24).
-    ckanext.datastore_ts.some_setting = some_default_value
+ckan.datastore.write_url = postgresql://ckan_default:password@localhost/datastore_default
+
+ckan.datastore.read_url = postgresql://datastore_default:password@localhost/datastore_default
 
 
 ------------------------
@@ -74,7 +74,7 @@ Running the Tests
 
 To run the tests, do::
 
-    nosetests --nologcapture --with-pylons=test.ini
+    nosetests --nologcapture --ckan --with-pylons=test-core.ini ckanext/datastore_ts/tests/test.. .py
 
 To run the tests and produce a coverage report, first make sure you have
 coverage installed in your virtualenv (``pip install coverage``) then run::

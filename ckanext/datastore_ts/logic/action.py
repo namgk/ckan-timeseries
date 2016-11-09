@@ -234,15 +234,16 @@ def datastore_upsert(context, data_dict):
 
     data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
 
-    res_id = data_dict['resource_id']
-    resources_sql = sqlalchemy.text(u'''SELECT 1 FROM "_table_metadata"
-                                        WHERE name = :id AND alias_of IS NULL''')
-    results = db._get_engine(data_dict).execute(resources_sql, id=res_id)
-    res_exists = results.rowcount > 0
+    # res_id = data_dict['resource_id']
+    # resources_sql = sqlalchemy.text(u'''SELECT 1 FROM "_table_metadata"
+    #                                     WHERE name = :id AND alias_of IS NULL''')
+    # results = db._get_engine(data_dict).execute(resources_sql, id=res_id)
+    # results.rowcount > 0
+    res_exists = _resource_exists(context, data_dict) 
 
     if not res_exists:
         raise p.toolkit.ObjectNotFound(p.toolkit._(
-            u'Resource "{0}" was not found.'.format(res_id)
+            u'Resource "{0}" was not found.'.format(data_dict['resource_id'])
         ))
 
     result = db.upsert(context, data_dict)

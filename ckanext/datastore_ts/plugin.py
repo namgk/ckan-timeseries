@@ -229,6 +229,7 @@ class Datastore_TsPlugin(p.SingletonPlugin):
     def _create_alias_table(self):
         mapping_sql = '''
             SELECT DISTINCT
+                pg_relation_size(dependee.oid) AS size,
                 substr(md5(dependee.relname || COALESCE(dependent.relname, '')), 0, 17) AS "_id",
                 dependee.relname AS name,
                 dependee.oid AS oid,
@@ -246,7 +247,7 @@ class Datastore_TsPlugin(p.SingletonPlugin):
                 dependee.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname='public')
             ORDER BY dependee.oid DESC;
         '''
-        create_alias_table_sql = u'CREATE OR REPLACE VIEW "_table_metadata" AS {0}'.format(mapping_sql)
+        create_alias_table_sql = u'CREATE OR REPLACE VIEW "_table_metadata_ts" AS {0}'.format(mapping_sql)
         try:
             connection = db._get_engine(
                 {'connection_url': self.write_url}).connect()

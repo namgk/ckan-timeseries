@@ -675,6 +675,16 @@ def upsert_data(context, data_dict):
     for r in records:
         if isinstance(r, dict):
             r['autogen_timestamp'] = datastore_helpers.utcnow()
+
+    # checking the table size vs allowed size
+    size_allowance = pylons.config.get('ckan.datastore_ts.size_allowance')
+    if size_allowance is None:
+        size_allowance = 500*1000000 # 500 MB
+
+    # size_sql = sqlalchemy.text(
+    #     u'SELECT name FROM "_table_metadata" WHERE alias_of = :id')
+    # results = context['connection'].execute(size_sql, id=res_id).fetchall()
+    
     # end Nam Giang
 
     sql_columns = ", ".join(['"%s"' % name.replace(
