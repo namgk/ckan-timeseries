@@ -69,21 +69,21 @@ def datastore_create(context, data_dict):
     '''
     # Nam Giang
     # Timeseries stuff 
-    if 'fields' in data_dict:
-        data_dict['fields'].insert(0,{'id': u'autogen_timestamp', 'type': 'timestamp with time zone'})
+    # if 'fields' in data_dict:
+    #     data_dict['fields'].insert(0,{'id': u'_autogen_timestamp', 'type': 'timestamp with time zone'})
         # if 'indexes' in data_dict:
         #     if isinstance(data_dict['indexes'], list):
-        #         data_dict['indexes'].insert(0,u'autogen_timestamp')
+        #         data_dict['indexes'].insert(0,u'_autogen_timestamp')
         #     else:
         #         current_idx = data_dict['indexes']
-        #         data_dict['indexes'] = [current_idx, u'autogen_timestamp']
+        #         data_dict['indexes'] = [current_idx, u'_autogen_timestamp']
         # else:
-        #     data_dict['indexes'] = u'autogen_timestamp'
+        #     data_dict['indexes'] = u'_autogen_timestamp'
 
-    if 'records' in data_dict:
-        for r in data_dict['records']:
-            if isinstance(r, dict):
-                r['autogen_timestamp'] = datastore_helpers.utcnow()
+    # if 'records' in data_dict:
+    #     for r in data_dict['records']:
+    #         if isinstance(r, dict):
+    #             r['_autogen_timestamp'] = datastore_helpers.utcnow()
     # end Nam Giang
 
     schema = context.get('schema', dsschema.datastore_create_schema())

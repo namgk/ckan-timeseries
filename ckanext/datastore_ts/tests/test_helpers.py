@@ -44,8 +44,6 @@ class TestTimestamp(object):
         parsed = datastore_helpers.timestamp_from_string(a_str)
         assert parsed.replace(microsecond=0) == expected.replace(microsecond=0)
 
-        assert False
-
 class TestTypeGetters(object):
     def test_get_list(self):
         get_list = datastore_helpers.get_list

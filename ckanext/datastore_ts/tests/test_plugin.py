@@ -3,8 +3,8 @@ import mock
 
 import ckan.tests.helpers as helpers
 import ckan.plugins as p
-import ckanext.datastore.interfaces as interfaces
-import ckanext.datastore.plugin as plugin
+import ckanext.datastore_ts.interfaces as interfaces
+import ckanext.datastore_ts.plugin as plugin
 
 
 Datastore_TsPlugin = plugin.Datastore_TsPlugin
@@ -14,16 +14,16 @@ assert_raises = nose.tools.assert_raises
 
 class TestPluginLoadingOrder(object):
     def setup(self):
-        if p.plugin_loaded('datastore'):
-            p.unload('datastore')
+        if p.plugin_loaded('datastore_ts'):
+            p.unload('datastore_ts')
         if p.plugin_loaded('sample_datastore_plugin'):
             p.unload('sample_datastore_plugin')
 
     def test_loading_datastore_first_works(self):
-        p.load('datastore')
+        p.load('datastore_ts')
         p.load('sample_datastore_plugin')
         p.unload('sample_datastore_plugin')
-        p.unload('datastore')
+        p.unload('datastore_ts')
 
     def test_loading_datastore_last_doesnt_work(self):
         # This test is complicated because we can't import
@@ -33,11 +33,11 @@ class TestPluginLoadingOrder(object):
         p.load('sample_datastore_plugin')
         thrown_exception = None
         try:
-            p.load('datastore')
+            p.load('datastore_ts')
         except Exception as e:
             thrown_exception = e
         idatastores = [x.__class__.__name__ for x
-                       in p.PluginImplementations(interfaces.IDatastore)]
+                       in p.PluginImplementations(interfaces.IDatastore_Ts)]
         p.unload('sample_datastore_plugin')
 
         assert thrown_exception is not None, \
@@ -53,11 +53,11 @@ class TestPluginLoadingOrder(object):
 class TestPluginDatastoreSearch(object):
     @classmethod
     def setup_class(cls):
-        p.load('datastore')
+        p.load('datastore_ts')
 
     @classmethod
     def teardown_class(cls):
-        p.unload('datastore')
+        p.unload('datastore_ts')
 
     @helpers.change_config('ckan.datastore.default_fts_lang', None)
     def test_english_is_default_fts_language(self):

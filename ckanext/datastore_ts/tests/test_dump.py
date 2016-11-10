@@ -11,8 +11,8 @@ import ckan.plugins as p
 import ckan.lib.create_test_data as ctd
 import ckan.model as model
 import ckan.tests.legacy as tests
-import ckanext.datastore.db as db
-import ckanext.datastore.tests.helpers as helpers
+import ckanext.datastore_ts.db as db
+import ckanext.datastore_ts.tests.helpers as helpers
 
 
 class TestDatastoreDump(object):
@@ -67,7 +67,7 @@ class TestDatastoreDump(object):
         res = self.app.get('/datastore/dump/{0}'.format(str(
             self.data['resource_id'])), extra_environ=auth)
         content = res.body.decode('utf-8')
-        expected = u'_id,autogen_timestamp,b\xfck,author,published,characters,nested'
+        expected = u'_id,b\xfck,author,published,characters,nested'
         assert_equals(content[:len(expected)], expected)
         assert 'warandpeace' in content
         assert "[u'Princess Anna', u'Sergius']" in content
@@ -86,6 +86,6 @@ class TestDatastoreDump(object):
         res = self.app.get('/datastore/dump/{0}?limit=1'.format(str(
             self.data['resource_id'])), extra_environ=auth)
         content = res.body.decode('utf-8')
-        expected = u'_id,autogen_timestamp,b\xfck,author,published,characters,nested'
+        expected = u'_id,b\xfck,author,published,characters,nested'
         assert_equals(content[:len(expected)], expected)
-        assert_equals(len(content), 199) # including autogen_timestamp
+        assert_equals(len(content), 148) 

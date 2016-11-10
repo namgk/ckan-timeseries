@@ -88,6 +88,6 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
         self.Session.remove()
 
         for row in results:
-            assert 'autogen_timestamp' in row
+            assert '_autogen_timestamp' in row
 
         assert results.rowcount == 3

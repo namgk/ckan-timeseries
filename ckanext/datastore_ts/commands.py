@@ -10,7 +10,20 @@ def _abort(message):
     print(message, file=sys.stderr)
     sys.exit(1)
 
+def _migrate_autogen_timestamp():
+    write_url = cli.parse_db_config('ckan.datastore.write_url')
+    read_url = cli.parse_db_config('ckan.datastore.read_url')
+    db_url = cli.parse_db_config('sqlalchemy.url')
 
+    context = {
+        'maindb': db_url['db_name'],
+        'datastoredb': write_url['db_name'],
+        'mainuser': db_url['db_user'],
+        'writeuser': write_url['db_user'],
+        'readuser': read_url['db_user'],
+    }
+    
+    pass
 def _set_permissions(args):
     write_url = cli.parse_db_config('ckan.datastore.write_url')
     read_url = cli.parse_db_config('ckan.datastore.read_url')

@@ -445,12 +445,12 @@ class Datastore_TsPlugin(p.SingletonPlugin):
         try:
             if fromtime is not None:
                 fromtime_postgres = datastore_helpers.timestamp_from_string(fromtime)
-                clause = (u'"{0}" >= %s'.format("autogen_timestamp"), fromtime_postgres)
+                clause = (u'"{0}" >= %s'.format("_autogen_timestamp"), fromtime_postgres)
                 clauses.append(clause)
                 # print(clause)
             if totime is not None:
                 totime_postgres = datastore_helpers.timestamp_from_string(totime)
-                clause = (u'"{0}" <= %s'.format("autogen_timestamp"), totime_postgres)
+                clause = (u'"{0}" <= %s'.format("_autogen_timestamp"), totime_postgres)
                 clauses.append(clause)
                 # print(clause)
         except:

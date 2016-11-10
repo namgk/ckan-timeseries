@@ -37,13 +37,13 @@ class Timeseries_query(object):
                     setattr(self, e, int(elm.split(e)[0]))
 
 def dict_rm_autogen_timestamp(dict):
-    if u'autogen_timestamp' in dict:
-        dict.pop(u'autogen_timestamp', None)
+    if u'_autogen_timestamp' in dict:
+        dict.pop(u'_autogen_timestamp', None)
     return dict
 
 def remove_autogen(result):
     if 'fields' in result:
-        result['fields'] = [f for f in result['fields'] if f.get('id') != u'autogen_timestamp']
+        result['fields'] = [f for f in result['fields'] if f.get('id') != u'_autogen_timestamp']
     if 'records' in result:
         result['records'] = map(dict_rm_autogen_timestamp, result['records'])
 

@@ -79,7 +79,7 @@ class TestDatastoreCreateNewTests(object):
         }
         result = helpers.call_action('datastore_ts_create', **data)
         resource_id = result['resource_id']
-        assert self._has_index_on_field(resource_id, u'autogen_timestamp')
+        assert self._has_index_on_field(resource_id, u'_autogen_timestamp')
 
         data = {
             'resource': {
@@ -94,7 +94,7 @@ class TestDatastoreCreateNewTests(object):
         result = helpers.call_action('datastore_ts_create', **data)
         resource_id = result['resource_id']
         assert self._has_index_on_field(resource_id, '"book"')
-        assert self._has_index_on_field(resource_id, u'autogen_timestamp')
+        assert self._has_index_on_field(resource_id, u'_autogen_timestamp')
 
         data = {
             'resource': {
@@ -109,7 +109,7 @@ class TestDatastoreCreateNewTests(object):
         result = helpers.call_action('datastore_ts_create', **data)
         resource_id = result['resource_id']
         assert self._has_index_on_field(resource_id, '"author"')
-        assert self._has_index_on_field(resource_id, u'autogen_timestamp')
+        assert self._has_index_on_field(resource_id, u'_autogen_timestamp')
 
     def test_create_adds_index_on_full_text_search_when_creating_other_indexes(self):
         package = factories.Dataset()

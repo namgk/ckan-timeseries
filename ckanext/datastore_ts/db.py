@@ -298,6 +298,7 @@ def create_table(context, data_dict):
     datastore_fields = [
         {'id': '_id', 'type': 'serial primary key'},
         {'id': '_full_text', 'type': 'tsvector'},
+        {'id': '_autogen_timestamp', 'type': 'timestamp with time zone'},
     ]
 
     # check first row of data for additional fields
@@ -406,7 +407,7 @@ def create_timestamp_index(context, data_dict):
 
     connection = context['connection']
     resource_id = data_dict['resource_id']
-    field_str = u'autogen_timestamp'
+    field_str = u'_autogen_timestamp'
     index_method = 'btree' or 'gist'
     name = _generate_index_name(resource_id, field_str)
 
@@ -651,15 +652,18 @@ def upsert_data(context, data_dict):
 
     fields = _get_fields(context, data_dict)
     # Nam Giang: check if database fields contain timestamp
-    autogen_timestamp = False
-    for f in fields:
-        if f['id'] == u'autogen_timestamp':
-            autogen_timestamp = True
 
-    if not autogen_timestamp:
-        raise ValidationError({
-                'resource': [u'resource does not have a timestamp column, should query via datastore_upsert']
-            })
+    # TODO: since _get_fields() only returns user provided fields,
+    # _autoget_timestamp is skipped
+    # need to find a way to check if the target resource is a 
+    # time series resource (has _autogen_timestam column)
+
+    # autogen_timestamp = False
+    # for f in fields:
+    #     if f['id'] == u'_autogen_timestamp':
+    #         autogen_timestamp = True
+
+
     # end Nam Giang
 
     field_names = _pluck('id', fields)
@@ -672,14 +676,14 @@ def upsert_data(context, data_dict):
             })
 
     # Nam Giang
-    for r in records:
-        if isinstance(r, dict):
-            r['autogen_timestamp'] = datastore_helpers.utcnow()
+    # for r in records:
+    #     if isinstance(r, dict):
+    #         r['_autogen_timestamp'] = datastore_helpers.utcnow()
 
-    # checking the table size vs allowed size
-    size_allowance = pylons.config.get('ckan.datastore_ts.size_allowance')
-    if size_allowance is None:
-        size_allowance = 500*1000000 # 500 MB
+    # get allowed table size configuration, default to 500MB
+    resource_size = pylons.config.get('ckan.datastore_ts.resource_size')
+    if resource_size is None:
+        resource_size = 500 * 1000 * 1000 # 500 MB
 
     # size_sql = sqlalchemy.text(
     #     u'SELECT name FROM "_table_metadata" WHERE alias_of = :id')
@@ -688,7 +692,7 @@ def upsert_data(context, data_dict):
     # end Nam Giang
 
     sql_columns = ", ".join(['"%s"' % name.replace(
-        '%', '%%') for name in field_names] + ['"_full_text"'])
+        '%', '%%') for name in field_names] + ['"_full_text"','"_autogen_timestamp"'])
 
     if method == _INSERT:
         rows = []
@@ -703,10 +707,11 @@ def upsert_data(context, data_dict):
                     value = (json.dumps(value), '')
                 row.append(value)
             row.append(_to_full_text(fields, record))
+            row.append(datastore_helpers.utcnow())
             rows.append(row)
 
         sql_string = u'''INSERT INTO "{res_id}" ({columns})
-            VALUES ({values}, to_tsvector(%s));'''.format(
+            VALUES ({values}, to_tsvector(%s), %s);'''.format(
             res_id=data_dict['resource_id'],
             columns=sql_columns,
             values=', '.join(['%s' for field in field_names])
@@ -766,7 +771,7 @@ def upsert_data(context, data_dict):
             if method == _UPDATE:
                 sql_string = u'''
                     UPDATE "{res_id}"
-                    SET ({columns}, "_full_text") = ({values}, to_tsvector(%s))
+                    SET ({columns}, "_full_text", "_autogen_timestamp") = ({values}, to_tsvector(%s), %s)
                     WHERE ({primary_key}) = ({primary_value});
                 '''.format(
                     res_id=data_dict['resource_id'],
@@ -780,7 +785,7 @@ def upsert_data(context, data_dict):
                     primary_value=u','.join(["%s"] * len(unique_keys))
                 )
                 results = context['connection'].execute(
-                    sql_string, used_values + [full_text] + unique_values)
+                    sql_string, used_values + [full_text,datastore_helpers.utcnow()] + unique_values)
 
                 # validate that exactly one row has been updated
                 if results.rowcount != 1:
@@ -791,10 +796,10 @@ def upsert_data(context, data_dict):
             elif method == _UPSERT:
                 sql_string = u'''
                     UPDATE "{res_id}"
-                    SET ({columns}, "_full_text") = ({values}, to_tsvector(%s))
+                    SET ({columns}, "_full_text", "_autogen_timestamp") = ({values}, to_tsvector(%s), %s)
                     WHERE ({primary_key}) = ({primary_value});
-                    INSERT INTO "{res_id}" ({columns}, "_full_text")
-                           SELECT {values}, to_tsvector(%s)
+                    INSERT INTO "{res_id}" ({columns}, "_full_text", "_autogen_timestamp")
+                           SELECT {values}, to_tsvector(%s), %s
                            WHERE NOT EXISTS (SELECT 1 FROM "{res_id}"
                                     WHERE ({primary_key}) = ({primary_value}));
                 '''.format(
@@ -810,7 +815,7 @@ def upsert_data(context, data_dict):
                 )
                 context['connection'].execute(
                     sql_string,
-                    (used_values + [full_text] + unique_values) * 2)
+                    (used_values + [full_text,datastore_helpers.utcnow()] + unique_values) * 2)
 
 
 def _get_unique_key(context, data_dict):
@@ -860,7 +865,7 @@ def _to_full_text(fields, record):
     for field in fields:
         try:
             fname = field['id'].decode('utf-8')
-            if fname == u'autogen_timestamp':
+            if fname == u'_autogen_timestamp':
                 continue
         except:
             pass 
@@ -942,7 +947,6 @@ def _insert_links(data_dict, limit, offset):
 def delete_data(context, data_dict):
     fields_types = _get_fields_types(context, data_dict)
     validate(context, data_dict, fields_types)
-    fields_types = _get_fields_types(context, data_dict)
 
     query_dict = {
         'where': []
@@ -1070,7 +1074,7 @@ def format_results(context, results, data_dict):
     result_fields = []
     for field in results.cursor.description:
         # Nam Giang
-        # if field[0].decode('utf-8') == u'autogen_timestamp':
+        # if field[0].decode('utf-8') == u'_autogen_timestamp':
         #     continue
         # end Nam Giang
         
