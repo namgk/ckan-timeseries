@@ -12,7 +12,9 @@ def _abort(message):
     print(message, file=sys.stderr)
     sys.exit(1)
 
-def _migrate_autogen_timestamp(old_name, new_name):
+def _migrate_autogen_timestamp(args):
+    old_name = args.old_name
+    new_name = args.new_name
     write_url_obj = cli.parse_db_config('ckan.datastore.write_url')
 
     write_url = 'postgres://'+ write_url_obj['db_user'] + ':'
@@ -74,18 +76,18 @@ parser = argparse.ArgumentParser(
            'these commands!')
 subparsers = parser.add_subparsers(title='commands')
 
-parser_set_perms = subparsers.add_parser(
-    'set-permissions',
-    description='Set the permissions on the datastore.',
-    help='This command will help ensure that the permissions for the '
-         'datastore users as configured in your configuration file are '
-         'correct at the database. It will emit an SQL script that '
-         'you can use to set these permissions.',
-    epilog='"The ships hung in the sky in much the same way that bricks '
-           'don\'t."')
-parser_set_perms.set_defaults(func=_set_permissions)
+# parser_set_perms = subparsers.add_parser(
+#     'set-permissions',
+#     description='Set the permissions on the datastore.',
+#     help='This command will help ensure that the permissions for the '
+#          'datastore users as configured in your configuration file are '
+#          'correct at the database. It will emit an SQL script that '
+#          'you can use to set these permissions.',
+#     epilog='"The ships hung in the sky in much the same way that bricks '
+#            'don\'t."')
+# parser_set_perms.set_defaults(func=_set_permissions)
 
-parser_set_perms = subparsers.add_parser(
+parser_upgrade_schema = subparsers.add_parser(
     'upgrade-schema',
     description='Upgrade schema from v0.0.3 to v0.1.0',
     help='This command is used to migrade schema of CKAN Timeseries API'
@@ -93,14 +95,18 @@ parser_set_perms = subparsers.add_parser(
          'However, since v0.1.0, this column has been renamed to _autogen_timestamp'
          'This change is to make it conform with the private/public field naming scheme',
     epilog='"Be careful, better backup your db first!!!"')
-parser_set_perms.set_defaults(func=_migrate_autogen_timestamp)
+parser_upgrade_schema.add_argument('old_name', type=str, help='old column name')
+parser_upgrade_schema.add_argument('new_name', type=str, help='new column name')
+parser_upgrade_schema.set_defaults(func=_migrate_autogen_timestamp)
 
 
-class SetupDatastoreCommand(cli.CkanCommand):
+class SetupDatastore_TsCommand(cli.CkanCommand):
     summary = parser.description
 
     def command(self):
         self._load_config()
 
+        print(self.args)
         args = parser.parse_args(self.args)
+        print(args)
         args.func(args)

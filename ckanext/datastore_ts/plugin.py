@@ -102,7 +102,7 @@ class Datastore_TsPlugin(p.SingletonPlugin):
 
         # Check whether we are running one of the paster commands which means
         # that we should ignore the following tests.
-        if sys.argv[0].split('/')[-1] == 'paster' and 'datastore' in sys.argv[1:]:
+        if sys.argv[0].split('/')[-1] == 'paster' and 'datastore_ts' in sys.argv[1:]:
             log.warn('Omitting permission checks because you are '
                      'running paster commands.')
             return
