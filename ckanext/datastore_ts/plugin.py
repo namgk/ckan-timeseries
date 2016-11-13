@@ -372,6 +372,7 @@ class Datastore_TsPlugin(p.SingletonPlugin):
             if isinstance(totime, basestring):
                 del data_dict['totime']
         # end Nam Giang
+
         return data_dict
 
     def _parse_sort_clause(self, clause, fields_types):

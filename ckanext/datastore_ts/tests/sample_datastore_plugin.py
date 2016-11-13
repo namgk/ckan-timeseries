@@ -1,10 +1,10 @@
 import ckan.plugins as p
 
-import ckanext.datastore.interfaces as interfaces
+import ckanext.datastore_ts.interfaces as interfaces
 
 
-class SampleDataStorePlugin(p.SingletonPlugin):
-    p.implements(interfaces.IDatastore, inherit=True)
+class SampleDataStore_TsPlugin(p.SingletonPlugin):
+    p.implements(interfaces.IDatastore_Ts, inherit=True)
 
     def datastore_validate(self, context, data_dict, column_names):
         valid_filters = ('age_between', 'age_not_between', 'insecure_filter')

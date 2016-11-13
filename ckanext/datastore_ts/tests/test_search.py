@@ -24,6 +24,7 @@ class TestDatastoreSearchNewTest(object):
     @classmethod
     def setup_class(cls):
         p.load('datastore_ts')
+        helpers.reset_db()
 
     @classmethod
     def teardown_class(cls):

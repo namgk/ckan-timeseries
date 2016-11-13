@@ -30,6 +30,8 @@ class TestDatastore_TsSearch(tests.WsgiAppCase):
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
         p.load('datastore_ts')
+        helpers.reset_db()
+
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')

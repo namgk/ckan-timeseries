@@ -9,6 +9,7 @@ import ckan.plugins as p
 import ckan.lib.create_test_data as ctd
 import ckan.model as model
 import ckan.tests.legacy as tests
+import ckan.tests.helpers as helpers
 
 import ckanext.datastore.db as db
 from ckanext.datastore.tests.helpers import rebuild_all_dbs, set_url_type
@@ -25,6 +26,8 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
         if not tests.is_datastore_supported():
             raise nose.SkipTest("Datastore not supported")
         p.load('datastore_ts')
+        helpers.reset_db()
+
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')

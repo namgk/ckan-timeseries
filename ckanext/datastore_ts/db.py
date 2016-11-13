@@ -945,8 +945,8 @@ def _insert_links(data_dict, limit, offset):
 
 
 def delete_data(context, data_dict):
+    validate(context, data_dict)
     fields_types = _get_fields_types(context, data_dict)
-    validate(context, data_dict, fields_types)
 
     query_dict = {
         'where': []
@@ -965,8 +965,8 @@ def delete_data(context, data_dict):
     _execute_single_statement(context, sql_string, where_values)
 
 
-def validate(context, data_dict, fields_types):
-    # fields_types = _get_fields_types(context, data_dict)
+def validate(context, data_dict):
+    fields_types = _get_fields_types(context, data_dict)
     data_dict_copy = copy.deepcopy(data_dict)
 
     # TODO: Convert all attributes that can be a comma-separated string to
@@ -987,7 +987,7 @@ def validate(context, data_dict, fields_types):
     del data_dict_copy['connection_url']
     del data_dict_copy['resource_id']
     data_dict_copy.pop('id', None)
-    
+
     for key, values in data_dict_copy.iteritems():
         if not values:
             continue
@@ -1008,8 +1008,8 @@ def validate(context, data_dict, fields_types):
 
 
 def search_data(context, data_dict):
+    validate(context, data_dict)
     fields_types = _get_fields_types(context, data_dict)
-    validate(context, data_dict, fields_types)
 
     query_dict = {
         'select': [],

@@ -7,16 +7,19 @@ import ckan.tests.factories as factories
 assert_equals = nose.tools.assert_equals
 assert_raises = nose.tools.assert_raises
 
+DATASTORE_SEARCH = 'datastore_ts_search'
+DATASTORE_CREATE = 'datastore_ts_create'
+DATASTORE_DELETE = 'datastore_ts_delete'
 
 class TestInterfaces(object):
     @classmethod
     def setup_class(cls):
         p.load('datastore_ts')
-        p.load('sample_datastore_plugin')
+        p.load('sample_datastore_ts_plugin')
 
     @classmethod
     def teardown_class(cls):
-        p.unload('sample_datastore_plugin')
+        p.unload('sample_datastore_ts_plugin')
         p.unload('datastore_ts')
 
     def setup(self):
@@ -29,7 +32,7 @@ class TestInterfaces(object):
         resource = self._create_datastore_resource(records)
         filters = {'age_between': [25, 35]}
 
-        result = helpers.call_action('datastore_ts_search',
+        result = helpers.call_action(DATASTORE_SEARCH,
                                      resource_id=resource['id'],
                                      filters=filters)
 
@@ -43,7 +46,7 @@ class TestInterfaces(object):
         resource = self._create_datastore_resource(records)
         filters = {'age_between': [25, 35]}
 
-        result = helpers.call_action('datastore_ts_search',
+        result = helpers.call_action(DATASTORE_SEARCH,
                                      resource_id=resource['id'],
                                      filters=filters.copy())
 
@@ -65,7 +68,7 @@ class TestInterfaces(object):
             'age': 30
         }
 
-        result = helpers.call_action('datastore_ts_search',
+        result = helpers.call_action(DATASTORE_SEARCH,
                                      resource_id=resource['id'],
                                      filters=filters)
 
@@ -85,10 +88,10 @@ class TestInterfaces(object):
         }
 
         assert_raises(p.toolkit.ValidationError,
-                      helpers.call_action, 'datastore_ts_search',
+                      helpers.call_action, DATASTORE_SEARCH,
                       resource_id=resource['id'], filters=filters)
 
-        result = helpers.call_action('datastore_ts_search',
+        result = helpers.call_action(DATASTORE_SEARCH,
                                      resource_id=resource['id'])
 
         assert result['total'] == 3, result
@@ -100,12 +103,12 @@ class TestInterfaces(object):
         resource = self._create_datastore_resource(records)
         filters = {'age_between': [25, 35]}
 
-        helpers.call_action('datastore_ts_delete',
+        helpers.call_action(DATASTORE_DELETE,
                             resource_id=resource['id'],
                             force=True,
                             filters=filters)
 
-        result = helpers.call_action('datastore_ts_search',
+        result = helpers.call_action(DATASTORE_SEARCH,
                                      resource_id=resource['id'])
 
         new_records_ages = [r['age'] for r in result['records']]
@@ -128,12 +131,12 @@ class TestInterfaces(object):
             'age': 30
         }
 
-        helpers.call_action('datastore_ts_delete',
+        helpers.call_action(DATASTORE_DELETE,
                             resource_id=resource['id'],
                             force=True,
                             filters=filters)
 
-        result = helpers.call_action('datastore_ts_search',
+        result = helpers.call_action(DATASTORE_SEARCH,
                                      resource_id=resource['id'])
 
         new_records_ages = [r['age'] for r in result['records']]
@@ -153,11 +156,11 @@ class TestInterfaces(object):
         }
 
         assert_raises(p.toolkit.ValidationError,
-                      helpers.call_action, 'datastore_ts_delete',
+                      helpers.call_action, DATASTORE_DELETE,
                       resource_id=resource['id'], force=True,
                       filters=filters)
 
-        result = helpers.call_action('datastore_ts_search',
+        result = helpers.call_action(DATASTORE_SEARCH,
                                      resource_id=resource['id'])
 
         assert result['total'] == 3, result
@@ -172,6 +175,6 @@ class TestInterfaces(object):
             'records': records
         }
 
-        helpers.call_action('datastore_ts_create', **data)
+        helpers.call_action(DATASTORE_CREATE, **data)
 
         return resource

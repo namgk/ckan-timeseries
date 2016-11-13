@@ -80,8 +80,8 @@ setup(
     entry_points='''
         [ckan.plugins]
         datastore_ts=ckanext.datastore_ts.plugin:Datastore_TsPlugin
-	[babel.extractors]
-	ckan = ckan.lib.extract:extract_ckan
+    	[babel.extractors]
+    	ckan = ckan.lib.extract:extract_ckan
     ''',
 
     # If you are changing from the default layout of your extension, you may
