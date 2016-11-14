@@ -5,6 +5,13 @@ ckanext-datastore_ts
 
 Timeseries data is streams of data that is indexed by timestamp, such as sensing data. Current default CKAN Datastore plugin only index data based on an auto-incremental integer with no support for timeseries data. Perceived that timeseries data is an important capability when working with sensor network, a new plugin that supports operations based on timestamp natively would be necessary. Thus, the purpose of this repository.
 
+------------
+Changes
+------------
+* If you are upgrading from version < 0.1.0, the schema has changed. A command has been created to upgrade the schema. Please run the following command:
+```
+paster --plugin=ckan datastore_ts -c <path to ini configuration file> upgrade-schema autogen_timestamp _autogen_timestamp
+```
 
 ------------
 Requirements
