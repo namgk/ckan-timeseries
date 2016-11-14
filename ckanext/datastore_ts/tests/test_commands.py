@@ -75,7 +75,7 @@ class TestCommands(object):
         autogen_res = conn.execute(sql_autogen_res, old_name).fetchall()
         for ar in autogen_res:
             columns = conn.execute(sql_describe, ar[0]).fetchall()
-            columns =  map(lambda x: x[0],columns)
+            columns = map(lambda x: x[0],columns)
             assert old_name in columns
 
         cmd._migrate_autogen_timestamp(old_name, new_name)

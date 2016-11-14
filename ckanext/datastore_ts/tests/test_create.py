@@ -38,6 +38,19 @@ class TestDatastoreCreateNewTests(object):
         p.unload('datastore_ts')
         helpers.reset_db()
 
+    @raises(p.toolkit.ValidationError)
+    def test_create_retention(self):
+        package = factories.Dataset()
+        retentions = [-1,0,1.5,100,101]
+        for ret in retentions:
+            data = {
+                'resource': {
+                    'retention': ret,
+                    'package_id': package['id']
+                },
+            }
+            helpers.call_action('datastore_ts_create', **data)
+
     def test_create_creates_index_on_primary_key(self):
         package = factories.Dataset()
         data = {

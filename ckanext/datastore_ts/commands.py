@@ -12,9 +12,7 @@ def _abort(message):
     print(message, file=sys.stderr)
     sys.exit(1)
 
-def _migrate_autogen_timestamp(args):
-    old_name = args.old_name
-    new_name = args.new_name
+def _migrate_autogen_timestamp(old_name, new_name):
     write_url_obj = cli.parse_db_config('ckan.datastore.write_url')
 
     write_url = 'postgres://'+ write_url_obj['db_user'] + ':'
@@ -106,7 +104,7 @@ class SetupDatastore_TsCommand(cli.CkanCommand):
     def command(self):
         self._load_config()
 
-        print(self.args)
         args = parser.parse_args(self.args)
-        print(args)
-        args.func(args)
+        old_name = args.old_name
+        new_name = args.new_name
+        args.func(old_name,new_name)

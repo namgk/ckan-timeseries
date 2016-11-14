@@ -67,25 +67,6 @@ def datastore_create(context, data_dict):
     See :ref:`fields` and :ref:`records` for details on how to lay out records.
 
     '''
-    # Nam Giang
-    # Timeseries stuff 
-    # if 'fields' in data_dict:
-    #     data_dict['fields'].insert(0,{'id': u'_autogen_timestamp', 'type': 'timestamp with time zone'})
-        # if 'indexes' in data_dict:
-        #     if isinstance(data_dict['indexes'], list):
-        #         data_dict['indexes'].insert(0,u'_autogen_timestamp')
-        #     else:
-        #         current_idx = data_dict['indexes']
-        #         data_dict['indexes'] = [current_idx, u'_autogen_timestamp']
-        # else:
-        #     data_dict['indexes'] = u'_autogen_timestamp'
-
-    # if 'records' in data_dict:
-    #     for r in data_dict['records']:
-    #         if isinstance(r, dict):
-    #             r['_autogen_timestamp'] = datastore_helpers.utcnow()
-    # end Nam Giang
-
     schema = context.get('schema', dsschema.datastore_create_schema())
     records = data_dict.pop('records', None)
     resource = data_dict.pop('resource', None)
@@ -112,6 +93,16 @@ def datastore_create(context, data_dict):
 
     if 'resource' in data_dict:
         has_url = 'url' in data_dict['resource']
+
+        if 'retention' in data_dict['resource']:
+            try:
+                retention = int(data_dict['resource']['retention'])
+                if retention < 1 or retention > 100:
+                    raise Exception()
+            except:
+                raise p.toolkit.ValidationError({'resource': [
+                    'Retention must be an integer from 1-100']})
+
         # A datastore only resource does not have a url in the db
         data_dict['resource'].setdefault('url', '_datastore_only_resource')
 
@@ -234,11 +225,6 @@ def datastore_upsert(context, data_dict):
 
     data_dict['connection_url'] = pylons.config['ckan.datastore.write_url']
 
-    # res_id = data_dict['resource_id']
-    # resources_sql = sqlalchemy.text(u'''SELECT 1 FROM "_table_metadata"
-    #                                     WHERE name = :id AND alias_of IS NULL''')
-    # results = db._get_engine(data_dict).execute(resources_sql, id=res_id)
-    # results.rowcount > 0
     res_exists = _resource_exists(context, data_dict) 
 
     if not res_exists:

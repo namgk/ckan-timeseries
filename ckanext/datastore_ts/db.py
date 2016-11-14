@@ -642,6 +642,47 @@ def insert_data(context, data_dict):
     result = upsert_data(context, data_dict)
     return result
 
+def _get_resource_size(resource_id, conn):
+    sql_resource_size = 'select size from _table_metadata_ts \
+        where name = %s'
+    
+    size = conn.execute(sql_resource_size, resource_id).fetchone()
+    return size[0]
+
+def _cleanup_resource(resource_id, conn):
+    # get allowed table size configuration, default to 500MB
+    max_size = int(pylons.config.get('ckan.datastore_ts.max_resource_size'))
+    if max_size is None:
+        max_size = 500 * 1000 * 1000 # 500 MB
+
+    size = _get_resource_size(resource_id, conn)
+
+    if size < max_size:
+        return
+
+    sql_resource_count = 'select min("_id"), count("_id") \
+        from "{}" '
+    min_count = conn.execute(sql_resource_count.format(resource_id)).fetchone()
+    min_id = int(min_count[0])
+    count = int(min_count[1])
+
+    # approximately calculate the max row counts based on
+    # current size and count ratio
+    # not work well when there's few rows (count/size not consistent)
+    max_count = max_size*count/size
+    if count < max_count:
+        return
+
+    resource = p.toolkit.get_action('resource_show')(None, {'id':resource_id})
+    retention = int(resource['retention']) if 'retention' in resource else 33
+
+    exceeding_amount = count - max_count
+    retention_amount = int(retention * max_count / 100)
+    delete_up_to = min_id + retention_amount + exceeding_amount
+
+    sql_delete = 'delete from "{}" where _id < {}'.format(resource_id, delete_up_to)
+    conn.execute(sql_delete)
+
 
 def upsert_data(context, data_dict):
     '''insert all data from records'''
@@ -651,21 +692,6 @@ def upsert_data(context, data_dict):
     method = data_dict.get('method', _UPSERT)
 
     fields = _get_fields(context, data_dict)
-    # Nam Giang: check if database fields contain timestamp
-
-    # TODO: since _get_fields() only returns user provided fields,
-    # _autoget_timestamp is skipped
-    # need to find a way to check if the target resource is a 
-    # time series resource (has _autogen_timestam column)
-
-    # autogen_timestamp = False
-    # for f in fields:
-    #     if f['id'] == u'_autogen_timestamp':
-    #         autogen_timestamp = True
-
-
-    # end Nam Giang
-
     field_names = _pluck('id', fields)
     records = data_dict['records']
 
@@ -675,24 +701,10 @@ def upsert_data(context, data_dict):
                 'records': [u'"records is not a list']
             })
 
-    # Nam Giang
-    # for r in records:
-    #     if isinstance(r, dict):
-    #         r['_autogen_timestamp'] = datastore_helpers.utcnow()
-
-    # get allowed table size configuration, default to 500MB
-    resource_size = pylons.config.get('ckan.datastore_ts.resource_size')
-    if resource_size is None:
-        resource_size = 500 * 1000 * 1000 # 500 MB
-
-    # size_sql = sqlalchemy.text(
-    #     u'SELECT name FROM "_table_metadata" WHERE alias_of = :id')
-    # results = context['connection'].execute(size_sql, id=res_id).fetchall()
-    
-    # end Nam Giang
-
     sql_columns = ", ".join(['"%s"' % name.replace(
         '%', '%%') for name in field_names] + ['"_full_text"','"_autogen_timestamp"'])
+
+    resource_size = _get_resource_size(data_dict['resource_id'], context['connection'])
 
     if method == _INSERT:
         rows = []
@@ -817,6 +829,13 @@ def upsert_data(context, data_dict):
                     sql_string,
                     (used_values + [full_text,datastore_helpers.utcnow()] + unique_values) * 2)
 
+    _cleanup_resource(data_dict['resource_id'], context['connection'])
+        # from multiprocessing import Pool
+        # pool = Pool(processes=1)
+        # pool.apply_async(_cleanup_resource, [data_dict['resource_id'], context['connection']], callback)
+
+def _callback(x):
+    print x
 
 def _get_unique_key(context, data_dict):
     sql_get_unique_key = '''
