@@ -68,7 +68,7 @@ def _permissions_sql(context):
 
 
 parser = argparse.ArgumentParser(
-    prog='paster datastore_ts',
+    prog='paster timeseries',
     description='Perform commands to set up the datastore',
     epilog='Make sure that the datastore URLs are set properly before you run '
            'these commands!')
@@ -98,7 +98,7 @@ parser_upgrade_schema.add_argument('new_name', type=str, help='new column name')
 parser_upgrade_schema.set_defaults(func=_migrate_autogen_timestamp)
 
 
-class SetupDatastore_TsCommand(cli.CkanCommand):
+class SetupTimeseriesCommand(cli.CkanCommand):
     summary = parser.description
 
     def command(self):

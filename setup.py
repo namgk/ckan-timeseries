@@ -15,7 +15,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # http://packaging.python.org/en/latest/tutorial.html#version
-    version='0.1.1',
+    version='0.1.2',
 
     description='''Timeseries-based datastore extension''',
     long_description=long_description,
@@ -81,8 +81,12 @@ setup(
     entry_points='''
         [ckan.plugins]
         timeseries=ckanext.timeseries.plugin:TimeseriesPlugin
+        [ckan.test_plugins]
+        test_timeseries=ckanext.timeseries.tests.sample_timeseries_plugin:SampleTimeseriesPlugin
     	[babel.extractors]
     	ckan = ckan.lib.extract:extract_ckan
+        [paste.paster_command]
+        timeseries = ckanext.timeseries.commands:SetupTimeseriesCommand
     ''',
 
     # If you are changing from the default layout of your extension, you may
