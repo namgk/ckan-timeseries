@@ -10,7 +10,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='''ckanext-datastore_ts''',
+    name='''ckanext-timeseries''',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
@@ -21,7 +21,7 @@ setup(
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/namgk/ckanext-datastore_ts',
+    url='https://github.com/namgk/ckan-timeseries',
 
     # Author details
     author='''Nam Giang''',
@@ -54,6 +54,7 @@ setup(
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
     packages=find_packages(exclude=['*.egg-info','contrib', 'docs', 'tests*']),
+    namespace_packages=['ckanext', 'ckanext.timeseries'],
 
     # List run-time dependencies here.  These will be installed by pip when your
     # project is installed. For an analysis of "install_requires" vs pip's
@@ -79,7 +80,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points='''
         [ckan.plugins]
-        datastore_ts=ckanext.datastore_ts.plugin:Datastore_TsPlugin
+        timeseries=ckanext.timeseries.plugin:TimeseriesPlugin
     	[babel.extractors]
     	ckan = ckan.lib.extract:extract_ckan
     ''',

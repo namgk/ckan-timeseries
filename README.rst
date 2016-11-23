@@ -39,9 +39,9 @@ To install ckanext-datastore_ts:
 
 2. Install the ckanext-datastore_ts Python package into your virtual environment::
 
-     pip install ckanext-datastore_ts
+     pip install ckanext-timeseries
 
-3. Add ``datastore_ts`` to the ``ckan.plugins`` setting in your CKAN
+3. Add ``timeseries`` to the ``ckan.plugins`` setting in your CKAN
    config file (by default the config file is located at
    ``/etc/ckan/default/production.ini``).
 
@@ -53,7 +53,7 @@ To install ckanext-datastore_ts:
 ---------------
 Config Settings
 ---------------
-Datastore_ts uses configurations from Datastore plugin so make sure those are set. In brief:
+CKAN Timeseries uses configurations from Datastore plugin so make sure those are set. In brief:
 
 sqlalchemy.url = postgresql://ckan_default:pass@localhost/ckan_default
 
@@ -61,19 +61,20 @@ ckan.datastore.write_url = postgresql://ckan_default:password@localhost/datastor
 
 ckan.datastore.read_url = postgresql://datastore_default:password@localhost/datastore_default
 
+CKAN Timeseries introduce a new configuration to set the maximum size of a resource table (as we are dealing with real time data). When a resource reaches this limit, it's table will be cleaned, the default 30% of the oldest data will be deleted. This percentage can be customized by user when creating a CKAN Timeseries resource. Please look at the wiki page for more detail.
+
+ckan.timeseries.max_resource_size = 9000
 
 ------------------------
 Development Installation
 ------------------------
 
-To install ckanext-datastore_ts for development, activate your CKAN virtualenv and
+To install ckanext-timeseries for development, activate your CKAN virtualenv and
 do::
 
-    git clone https://github.com/namgk/ckanext-datastore_ts.git
-    cd ckanext-datastore_ts
+    git clone https://github.com/namgk/ckan-timeseries.git
+    cd ckanext-timeseries
     python setup.py develop
-    pip install -r dev-requirements.txt
-
 
 -----------------
 Running the Tests
@@ -81,20 +82,20 @@ Running the Tests
 
 To run the tests, do::
 
-    nosetests --nologcapture --ckan --with-pylons=test-core.ini ckanext/datastore_ts/tests/test.. .py
+    nosetests --nologcapture --ckan --with-pylons=test-core.ini ckanext/timeseries/tests/test.. .py
 
 To run the tests and produce a coverage report, first make sure you have
 coverage installed in your virtualenv (``pip install coverage``) then run::
 
-    nosetests --nologcapture --with-pylons=test.ini --with-coverage --cover-package=ckanext.datastore_ts --cover-inclusive --cover-erase --cover-tests
+    nosetests --nologcapture --with-pylons=test.ini --with-coverage --cover-package=ckanext.timeseries --cover-inclusive --cover-erase --cover-tests
 
 
 ---------------------------------
-Registering ckanext-datastore_ts on PyPI
+Registering ckanext-timeseries on PyPI
 ---------------------------------
 
-ckanext-datastore_ts should be availabe on PyPI as
-https://pypi.python.org/pypi/ckanext-datastore_ts. If that link doesn't work, then
+ckanext-timeseries should be availabe on PyPI as
+https://pypi.python.org/pypi/ckanext-timeseries. If that link doesn't work, then
 you can register the project on PyPI for the first time by following these
 steps:
 
@@ -119,10 +120,10 @@ steps:
 
 
 ----------------------------------------
-Releasing a New Version of ckanext-datastore_ts
+Releasing a New Version of ckanext-timeseries
 ----------------------------------------
 
-ckanext-datastore_ts is availabe on PyPI as https://pypi.python.org/pypi/ckanext-datastore_ts.
+ckanext-timeseries is availabe on PyPI as https://pypi.python.org/pypi/ckanext-timeseries.
 To publish a new version to PyPI follow these steps:
 
 1. Update the version number in the ``setup.py`` file.
