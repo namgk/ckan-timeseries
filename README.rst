@@ -1,6 +1,6 @@
 
 =============
-ckanext-datastore_ts
+ckanext-timeseries
 =============
 
 Timeseries data is streams of data that is indexed by timestamp, such as sensing data. Current default CKAN Datastore plugin only index data based on an auto-incremental integer with no support for timeseries data. Perceived that timeseries data is an important capability when working with sensor network, a new plugin that supports operations based on timestamp natively would be necessary. Thus, the purpose of this repository.
@@ -8,20 +8,17 @@ Timeseries data is streams of data that is indexed by timestamp, such as sensing
 ------------
 Changes
 ------------
-* If you are upgrading from version < 0.1.0, the schema has changed. A command has been created to upgrade the schema. Please run the following command:
+* If you are coming from version < v0.1.0, the schema has changed. A command has been created to upgrade the schema. Please run the following command:
 ```
 paster --plugin=ckan datastore_ts -c <path to ini configuration file> upgrade-schema autogen_timestamp _autogen_timestamp
 ```
 
+* From v1.0.0 the plugin name has changed from "ckanext-datastore_ts" to "ckanext-timeseries", please install ckanext-timeseries as bellow.
 ------------
 Requirements
 ------------
 
-Being developed under CKAN 2.5.2
-
-Requires iso8601:
-
-``` pip install iso8601 ```
+Being developed under CKAN 2.6
 
 ------------
 Installation
@@ -31,7 +28,7 @@ Installation
    For example installing any non-Python dependencies or adding any required
    config settings.
 
-To install ckanext-datastore_ts:
+To install ckanext-timeseries:
 
 1. Activate your CKAN virtual environment, for example::
 
@@ -99,11 +96,11 @@ https://pypi.python.org/pypi/ckanext-timeseries. If that link doesn't work, then
 you can register the project on PyPI for the first time by following these
 steps:
 
-1. Create a source distribution of the project::
+1. (First time only) Create a source distribution of the project::
 
      python setup.py sdist
 
-2. Register the project::
+2. (First time only) Register the project::
 
      python setup.py register
 
@@ -116,31 +113,4 @@ steps:
    0.0.1 then do::
 
        git tag 0.0.1
-       git push --tags
-
-
-----------------------------------------
-Releasing a New Version of ckanext-timeseries
-----------------------------------------
-
-ckanext-timeseries is availabe on PyPI as https://pypi.python.org/pypi/ckanext-timeseries.
-To publish a new version to PyPI follow these steps:
-
-1. Update the version number in the ``setup.py`` file.
-   See `PEP 440 <http://legacy.python.org/dev/peps/pep-0440/#public-version-identifiers>`_
-   for how to choose version numbers.
-
-2. Create a source distribution of the new version::
-
-     python setup.py sdist
-
-3. Upload the source distribution to PyPI::
-
-     python setup.py sdist upload
-
-4. Tag the new release of the project on GitHub with the version number from
-   the ``setup.py`` file. For example if the version number in ``setup.py`` is
-   0.0.2 then do::
-
-       git tag 0.0.2
        git push --tags
