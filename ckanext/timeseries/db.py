@@ -657,8 +657,10 @@ def _cleanup_resource(resource_id, conn):
         max_size = None
         
     if max_size is None:
-        max_size = 500 * 1000 * 1000 # 500 MB
+        max_size = 500 # 500 MB
 
+    max_size = max_size *  * 1000 * 1000
+    
     size = _get_resource_size(resource_id, conn)
     if size < max_size:
         return
@@ -684,6 +686,8 @@ def _cleanup_resource(resource_id, conn):
     delete_up_to = min_id + retention_amount + exceeding_amount
 
     sql_delete = 'delete from "{}" where _id < {}'.format(resource_id, delete_up_to)
+    log.debug('Squashing old data: {}'.format(sql_delete))
+
     conn.execute(sql_delete)
 
 
