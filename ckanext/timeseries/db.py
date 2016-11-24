@@ -651,7 +651,11 @@ def _get_resource_size(resource_id, conn):
 
 def _cleanup_resource(resource_id, conn):
     # get allowed table size configuration, default to 500MB
-    max_size = int(pylons.config.get('ckan.timeseries.max_resource_size'))
+    try:
+        max_size = int(pylons.config.get('ckan.timeseries.max_resource_size'))
+    except ValueError as err:
+        max_size = None
+        
     if max_size is None:
         max_size = 500 * 1000 * 1000 # 500 MB
 
