@@ -8,7 +8,7 @@ from iso8601 import ParseError
 import ckan.plugins.toolkit as toolkit
 import paste.deploy.converters as converters
 import re
-        
+import pylons
 
 log = logging.getLogger(__name__)
 
@@ -161,3 +161,14 @@ def identifier(s):
     Return s as a quoted postgres identifier
     """
     return u'"' + s.replace(u'"', u'""').replace(u'\0', '') + u'"'
+
+
+def get_max_resource_size():
+    # get allowed table size configuration, default to 500MB
+    # the number in configuration file is in MB
+    try:
+        max_resource_size = int(pylons.config.get('ckan.timeseries.max_resource_size'))
+    except ValueError as err:
+        max_resource_size = 500 # in MB
+        
+    return max_resource_size * 1000 * 1000

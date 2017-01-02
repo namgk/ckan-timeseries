@@ -10,7 +10,7 @@ import ckan.model as model
 from ckan.common import request
 
 
-class DatastoreController(base.BaseController):
+class TimeseriesController(base.BaseController):
     def dump(self, resource_id):
         context = {
             'model': model,

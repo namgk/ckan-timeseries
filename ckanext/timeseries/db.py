@@ -63,6 +63,7 @@ _INSERT = 'insert'
 _UPSERT = 'upsert'
 _UPDATE = 'update'
 
+max_resource_size = datastore_helpers.get_max_resource_size()
 
 class InvalidDataError(Exception):
     """Exception that's raised if you try to add invalid data to the datastore.
@@ -72,7 +73,6 @@ class InvalidDataError(Exception):
 
     """
     pass
-
 
 def _pluck(field, arr):
     return [x[field] for x in arr]
@@ -650,19 +650,8 @@ def _get_resource_size(resource_id, conn):
     return size[0]
 
 def _cleanup_resource(resource_id, conn):
-    # get allowed table size configuration, default to 500MB
-    try:
-        max_size = int(pylons.config.get('ckan.timeseries.max_resource_size'))
-    except ValueError as err:
-        max_size = None
-        
-    if max_size is None:
-        max_size = 500 # 500 MB
-
-    max_size = max_size * 1000 * 1000
-
     size = _get_resource_size(resource_id, conn)
-    if size < max_size:
+    if size < max_resource_size:
         return
 
     sql_resource_count = 'select min("_id"), count("_id") \
@@ -674,7 +663,7 @@ def _cleanup_resource(resource_id, conn):
     # approximately calculate the max row counts based on
     # current size and count ratio
     # not work well when there's few rows (count/size not consistent)
-    max_count = max_size*count/size
+    max_count = max_resource_size*count/size
     if count < max_count:
         return
 
@@ -1097,11 +1086,6 @@ def _execute_single_statement(context, sql_string, where_values):
 def format_results(context, results, data_dict):
     result_fields = []
     for field in results.cursor.description:
-        # Nam Giang
-        # if field[0].decode('utf-8') == u'_autogen_timestamp':
-        #     continue
-        # end Nam Giang
-        
         result_fields.append({
             'id': field[0].decode('utf-8'),
             'type': _get_type(context, field[1])

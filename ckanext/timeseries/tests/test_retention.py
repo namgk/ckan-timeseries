@@ -32,7 +32,10 @@ class TestRetentionPolicy(tests.WsgiAppCase):
         p.load('timeseries')
         helpers.reset_db()
 
-        cls.retention = range(10,90,20)
+        # Creating 3 resources with 3 retention policies: 
+        # to remove 10, 20 and 90% of data when the 
+        # resource gets to its size limit
+        cls.retention = [10, 90, 20, 50]
         cls.resource_ids = []
 
         package = factories.Dataset()
@@ -45,27 +48,6 @@ class TestRetentionPolicy(tests.WsgiAppCase):
             }
             result = helpers.call_action('datastore_ts_create', **data)
             cls.resource_ids.append(result['resource_id'])
-
-            data1 = {
-                'resource_id': cls.resource_ids[i],
-                'force': True,
-                'fields': [{'id': 'author', 'type': 'text'},
-                           {'id': 'published'}],
-                'records': [{'author': 'tolstoy1',
-                            'published': '2005-03-01'},
-                            {'author': 'tolstoy2'},
-                            {'author': 'tolstoy3',
-                            'published': '2005-03-03'},
-                            {'author': 'tolstoy4'},
-                            {'author': 'tolstoy5',
-                            'published': '2005-03-05'},
-                            {'author': 'tolstoy6'},
-                            {'author': 'tolstoy7',
-                            'published': '2005-03-05'}
-                           ]
-            }
-
-            result = helpers.call_action('datastore_ts_create', **data1)
 
         engine = db._get_engine(
                 {'connection_url': pylons.config['ckan.datastore.write_url']}
@@ -80,35 +62,44 @@ class TestRetentionPolicy(tests.WsgiAppCase):
 
     def test_retention_in_action(self):
         sql_resource_count = 'select min("_id"), count("_id") \
-        from "{}" '
-        ret_idx = 3 # min: 0, max: 3
+            from "{}" '
+        ret_idx = 2 # min: 0, max: 3
     
-        records = []
-        for i in range(0, 500):
-            records.append({'author': 'tolstoy7tolstoy7',
-                        'published': '2005-03-01'})
+        # records = []
+        # for i in range(0, 500):
+        #     records.append({'author': 'tolstoy7tolstoy7',
+        #                 'published': '2005-03-01'})
         data = {
             'resource_id': self.resource_ids[ret_idx],
             'force': True,
             'fields': [{'id': 'author', 'type': 'text'},
                        {'id': 'published'}],
-            'records': records
+            'records': [
+                {'author': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\
+                aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\
+                aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\
+                aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                'published': '2005-03-01'}
+                for i in range(0,2500)
+             ]
         }
 
         result = helpers.call_action('datastore_ts_create', **data)
+        size = db._get_resource_size(self.resource_ids[ret_idx], self.Session.connection())
         
-        sql_resource_count = 'select min("_id"), count("_id") \
-            from "{}" '
         min_count = self.Session.connection().execute(sql_resource_count.format(self.resource_ids[ret_idx])).fetchone()
         min_id = int(min_count[0])
         count = int(min_count[1])
 
-        assert min_id != 1
-        assert count < 500
+        print(count, min_id)
 
-    def test_get_resource_size(self):
-        size = db._get_resource_size(self.resource_ids[0], self.Session.connection())
-        assert size == 8192
+        assert min_id != 1
+        assert count < 2500
+
+    # def test_get_resource_size(self):
+    #     size = db._get_resource_size(self.resource_ids[3], self.Session.connection())
+    #     print(size)
+    #     assert size == 8192
 
     # def test_cleanup_resource(self):
     #     sql_resource_count = 'select min("_id"), count("_id") \
