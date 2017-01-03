@@ -5,6 +5,8 @@ ckanext-timeseries
 
 Timeseries data is streams of data that is indexed by timestamp, such as sensing data. Current default CKAN Datastore plugin only index data based on an auto-incremental integer with no support for timeseries data. Perceived that timeseries data is an important capability when working with sensor network, a new plugin that supports operations based on timestamp natively would be necessary. Thus, the purpose of this repository.
 
+This plugin is fully compatible with current Datastore API <http://docs.ckan.org/en/latest/maintaining/datastore.html#the-datastore-api>, the endpoint is changed from 'datastore_*' to 'datastore_ts_*'. For example, for search query: send request to 'datastore_ts_search' endpoint. Original datastore plugin should still be enabled so that you can view the resources on CKAN web interface.
+
 ------------
 Changes
 ------------
