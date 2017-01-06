@@ -10,12 +10,12 @@ import ckan.plugins as p
 import ckan.logic as logic
 import ckan.model as model
 from ckan.common import config
-import ckanext.datastore.logic.action as action
-import ckanext.datastore.logic.auth as auth
-import ckanext.datastore.db as db
-import ckanext.datastore.interfaces as interfaces
-import ckanext.datastore.helpers as datastore_helpers
-from ckanext.datastore.helpers import literal_string
+import ckanext.timeseries.logic.action as action
+import ckanext.timeseries.logic.auth as auth
+import ckanext.timeseries.db as db
+import ckanext.timeseries.interfaces as interfaces
+import ckanext.timeseries.helpers as datastore_helpers
+from ckanext.timeseries.helpers import literal_string
 
 
 log = logging.getLogger(__name__)
@@ -24,7 +24,6 @@ _get_or_bust = logic.get_or_bust
 DEFAULT_FORMATS = []
 
 ValidationError = p.toolkit.ValidationError
-
 
 def _is_legacy_mode(config):
     '''
@@ -46,7 +45,7 @@ class DatastoreException(Exception):
     pass
 
 
-class DatastorePlugin(p.SingletonPlugin):
+class TimeseriesPlugin(p.SingletonPlugin):
     p.implements(p.IConfigurable, inherit=True)
     p.implements(p.IConfigurer)
     p.implements(p.IActions)
@@ -55,17 +54,17 @@ class DatastorePlugin(p.SingletonPlugin):
     p.implements(p.IDomainObjectModification, inherit=True)
     p.implements(p.IRoutes, inherit=True)
     p.implements(p.IResourceController, inherit=True)
-    p.implements(interfaces.IDatastore, inherit=True)
+    p.implements(interfaces.ITimeseries, inherit=True)
 
     legacy_mode = False
     resource_show_action = None
 
     def __new__(cls, *args, **kwargs):
-        idatastore_extensions = p.PluginImplementations(interfaces.IDatastore)
-        idatastore_extensions = idatastore_extensions.extensions()
+        itimeseries_extensions = p.PluginImplementations(interfaces.ITimeseries)
+        itimeseries_extensions = itimeseries_extensions.extensions()
 
-        if idatastore_extensions and idatastore_extensions[0].__class__ != cls:
-            msg = ('The "datastore" plugin must be the first IDatastore '
+        if itimeseries_extensions and itimeseries_extensions[0].__class__ != cls:
+            msg = ('The "datastore" plugin must be the first ITimeseries '
                    'plugin loaded. Change the order it is loaded in '
                    '"ckan.plugins" in your CKAN .ini file and try again.')
             raise DatastoreException(msg)
@@ -96,7 +95,7 @@ class DatastorePlugin(p.SingletonPlugin):
 
         # Check whether we are running one of the paster commands which means
         # that we should ignore the following tests.
-        if sys.argv[0].split('/')[-1] == 'paster' and 'datastore' in sys.argv[1:]:
+        if sys.argv[0].split('/')[-1] == 'paster' and 'timeseries' in sys.argv[1:]:
             log.warn('Omitting permission checks because you are '
                      'running paster commands.')
             return
@@ -124,6 +123,7 @@ class DatastorePlugin(p.SingletonPlugin):
                      'of _table_metadata are skipped.')
         else:
             self._check_urls_and_permissions()
+            self._create_alias_table() # create another _table_metadata_ts for resource size
 
     def notify(self, entity, operation=None):
         if not isinstance(entity, model.Package) or self.legacy_mode:
@@ -132,9 +132,9 @@ class DatastorePlugin(p.SingletonPlugin):
         if operation == model.domain_object.DomainObjectOperation.changed:
             context = {'model': model, 'ignore_auth': True}
             if entity.private:
-                func = p.toolkit.get_action('datastore_make_private')
+                func = p.toolkit.get_action('datastore_ts_make_private')
             else:
-                func = p.toolkit.get_action('datastore_make_public')
+                func = p.toolkit.get_action('datastore_ts_make_public')
             for resource in entity.resources:
                 try:
                     func(context, {
@@ -220,30 +220,30 @@ class DatastorePlugin(p.SingletonPlugin):
         return True
 
     def get_actions(self):
-        actions = {'datastore_create': action.datastore_create,
-                   'datastore_upsert': action.datastore_upsert,
-                   'datastore_delete': action.datastore_delete,
-                   'datastore_search': action.datastore_search,
-                   'datastore_info': action.datastore_info,
+        actions = {'datastore_ts_create': action.datastore_create,
+                   'datastore_ts_upsert': action.datastore_upsert,
+                   'datastore_ts_delete': action.datastore_delete,
+                   'datastore_ts_search': action.datastore_search,
+                   'datastore_ts_info': action.datastore_info,
                   }
         if not self.legacy_mode:
             if self.enable_sql_search:
                 # Only enable search_sql if the config does not disable it
-                actions.update({'datastore_search_sql':
+                actions.update({'datastore_ts_search_sql':
                                  action.datastore_search_sql})
             actions.update({
-                'datastore_make_private': action.datastore_make_private,
-                'datastore_make_public': action.datastore_make_public})
+                'datastore_ts_make_private': action.datastore_make_private,
+                'datastore_ts_make_public': action.datastore_make_public})
         return actions
 
     def get_auth_functions(self):
-        return {'datastore_create': auth.datastore_create,
-                'datastore_upsert': auth.datastore_upsert,
-                'datastore_delete': auth.datastore_delete,
-                'datastore_info': auth.datastore_info,
-                'datastore_search': auth.datastore_search,
-                'datastore_search_sql': auth.datastore_search_sql,
-                'datastore_change_permissions': auth.datastore_change_permissions}
+        return {'datastore_ts_create': auth.datastore_create,
+                'datastore_ts_upsert': auth.datastore_upsert,
+                'datastore_ts_delete': auth.datastore_delete,
+                'datastore_ts_info': auth.datastore_info,
+                'datastore_ts_search': auth.datastore_search,
+                'datastore_ts_search_sql': auth.datastore_search_sql,
+                'datastore_ts_change_permissions': auth.datastore_change_permissions}
 
     def before_map(self, m):
         m.connect('/datastore/dump/{resource_id}',
@@ -321,6 +321,18 @@ class DatastorePlugin(p.SingletonPlugin):
             if is_positive_int:
                 del data_dict['offset']
 
+        # Nam Giang
+        fromtime = data_dict.get('fromtime')
+        if fromtime:
+            if isinstance(fromtime, basestring):
+                del data_dict['fromtime']
+
+        totime = data_dict.get('totime')
+        if totime:
+            if isinstance(totime, basestring):
+                del data_dict['totime']
+        # end Nam Giang
+
         return data_dict
 
     def _parse_sort_clause(self, clause, fields_types):
@@ -386,6 +398,28 @@ class DatastorePlugin(p.SingletonPlugin):
             else:
                 clause = (u'"{0}" = %s'.format(field), value)
             clauses.append(clause)
+
+
+        # Nam Giang
+        fromtime = data_dict.get('fromtime', None)
+        totime = data_dict.get('totime', None)
+
+        try:
+            if fromtime is not None:
+                fromtime_postgres = datastore_helpers.timestamp_from_string(fromtime)
+                clause = (u'"{0}" >= %s'.format("_autogen_timestamp"), fromtime_postgres)
+                clauses.append(clause)
+                # print(clause)
+            if totime is not None:
+                totime_postgres = datastore_helpers.timestamp_from_string(totime)
+                clause = (u'"{0}" <= %s'.format("_autogen_timestamp"), totime_postgres)
+                clauses.append(clause)
+                # print(clause)
+        except:
+            raise ValidationError({
+                    'fields': [u'input time string not valid, fromTime: {}, toTime: {}'.format(fromtime, totime)]
+                })
+        # end Nam Giang
 
         # add full-text search where clause
         q = data_dict.get('q')
@@ -508,3 +542,33 @@ class DatastorePlugin(p.SingletonPlugin):
         if field:
             rank_alias += u' ' + field
         return u'"{0}"'.format(rank_alias)
+
+
+    def _create_alias_table(self):
+        mapping_sql = '''
+            SELECT DISTINCT
+                pg_relation_size(dependee.oid) AS size,
+                substr(md5(dependee.relname || COALESCE(dependent.relname, '')), 0, 17) AS "_id",
+                dependee.relname AS name,
+                dependee.oid AS oid,
+                dependent.relname AS alias_of
+                -- dependent.oid AS oid
+            FROM
+                pg_class AS dependee
+                LEFT OUTER JOIN pg_rewrite AS r ON r.ev_class = dependee.oid
+                LEFT OUTER JOIN pg_depend AS d ON d.objid = r.oid
+                LEFT OUTER JOIN pg_class AS dependent ON d.refobjid = dependent.oid
+            WHERE
+                (dependee.oid != dependent.oid OR dependent.oid IS NULL) AND
+                (dependee.relname IN (SELECT tablename FROM pg_catalog.pg_tables)
+                    OR dependee.relname IN (SELECT viewname FROM pg_catalog.pg_views)) AND
+                dependee.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname='public')
+            ORDER BY dependee.oid DESC;
+        '''
+        create_alias_table_sql = u'CREATE OR REPLACE VIEW "_table_metadata_ts" AS {0}'.format(mapping_sql)
+        try:
+            connection = db._get_engine(
+                {'connection_url': self.write_url}).connect()
+            connection.execute(create_alias_table_sql)
+        finally:
+            connection.close()

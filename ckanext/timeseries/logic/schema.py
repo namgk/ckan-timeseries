@@ -143,6 +143,8 @@ def datastore_search_schema():
         'plain': [ignore_missing, boolean_validator],
         'filters': [ignore_missing, json_validator],
         'language': [ignore_missing, unicode],
+        'fromtime': [ignore_missing, unicode],
+        'totime': [ignore_missing, unicode],
         'limit': [ignore_missing, int_validator],
         'offset': [ignore_missing, int_validator],
         'fields': [ignore_missing, list_of_strings_or_string],

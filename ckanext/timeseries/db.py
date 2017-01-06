@@ -15,8 +15,8 @@ import urlparse
 import ckan.lib.cli as cli
 import ckan.plugins as p
 import ckan.plugins.toolkit as toolkit
-import ckanext.datastore.helpers as datastore_helpers
-import ckanext.datastore.interfaces as interfaces
+import ckanext.timeseries.interfaces as interfaces
+import ckanext.timeseries.helpers as datastore_helpers
 import psycopg2.extras
 import sqlalchemy
 from ckan.common import OrderedDict, config
@@ -64,6 +64,7 @@ _INSERT = 'insert'
 _UPSERT = 'upsert'
 _UPDATE = 'update'
 
+max_resource_size = datastore_helpers.get_max_resource_size()
 
 class InvalidDataError(Exception):
     """Exception that's raised if you try to add invalid data to the datastore.
@@ -299,6 +300,7 @@ def create_table(context, data_dict):
     datastore_fields = [
         {'id': '_id', 'type': 'serial primary key'},
         {'id': '_full_text', 'type': 'tsvector'},
+        {'id': '_autogen_timestamp', 'type': 'timestamp with time zone'},
     ]
 
     # check first row of data for additional fields
@@ -401,6 +403,26 @@ def create_alias(context, data_dict):
                     'alias': [u'"{0}" already exists'.format(alias)]
                 })
 
+def create_timestamp_index(context, data_dict):
+    if 'fields' not in data_dict:
+        return
+
+    connection = context['connection']
+    resource_id = data_dict['resource_id']
+    field_str = u'_autogen_timestamp'
+    index_method = 'btree' or 'gist'
+    name = _generate_index_name(resource_id, field_str)
+
+    sql_index_tmpl = u'CREATE {unique} INDEX "{name}" ON "{res_id}"'
+    sql_index_string_method = sql_index_tmpl + u' USING {method}({fields})'
+    sql_index_string_method = sql_index_string_method.format(
+            res_id=resource_id,
+            unique='',
+            name=name,
+            method=index_method, fields=field_str)
+    current_indexes = _get_index_names(context['connection'], resource_id)
+    if name not in current_indexes:
+        connection.execute(sql_index_string_method)
 
 def create_indexes(context, data_dict):
     connection = context['connection']
@@ -464,6 +486,8 @@ def create_indexes(context, data_dict):
                      if sql_index_string.find(c) != -1]
         if not has_index:
             connection.execute(sql_index_string)
+            
+    create_timestamp_index(context, data_dict)
 
 
 def _build_fts_indexes(connection, data_dict, sql_index_str_method, fields):
@@ -554,6 +578,42 @@ def _drop_indexes(context, data_dict, unique=False):
         context['connection'].execute(
             sql_drop_index.format(index[0]).replace('%', '%%'))
 
+def _get_resource_size(resource_id, conn):
+    sql_resource_size = 'select size from _table_metadata_ts \
+        where name = %s'
+    
+    size = conn.execute(sql_resource_size, resource_id).fetchone()
+    return size[0]
+
+def _cleanup_resource(resource_id, conn):
+    size = _get_resource_size(resource_id, conn)
+    if size < max_resource_size:
+        return
+
+    sql_resource_count = 'select min("_id"), count("_id") \
+        from "{}" '
+    min_count = conn.execute(sql_resource_count.format(resource_id)).fetchone()
+    min_id = int(min_count[0])
+    count = int(min_count[1])
+
+    # approximately calculate the max row counts based on
+    # current size and count ratio
+    # not work well when there's few rows (count/size not consistent)
+    max_count = max_resource_size*count/size
+    if count < max_count:
+        return
+
+    resource = p.toolkit.get_action('resource_show')(None, {'id':resource_id})
+    retention = int(resource['retention']) if 'retention' in resource else 33
+
+    exceeding_amount = count - max_count
+    retention_amount = int(retention * max_count / 100)
+    delete_up_to = min_id + retention_amount + exceeding_amount
+
+    sql_delete = 'delete from "{}" where _id < {}'.format(resource_id, delete_up_to)
+    log.debug('Squashing old data: {}'.format(sql_delete))
+
+    conn.execute(sql_delete)
 
 def alter_table(context, data_dict):
     '''alter table from combination of fields and first row of data
@@ -636,8 +696,11 @@ def upsert_data(context, data_dict):
     fields = _get_fields(context, data_dict)
     field_names = _pluck('id', fields)
     records = data_dict['records']
+
+    # TODO do we need sanity here?
+
     sql_columns = ", ".join(['"%s"' % name.replace(
-        '%', '%%') for name in field_names] + ['"_full_text"'])
+        '%', '%%') for name in field_names] + ['"_full_text"','"_autogen_timestamp"'])
 
     if method == _INSERT:
         rows = []
@@ -652,10 +715,12 @@ def upsert_data(context, data_dict):
                     value = (json.dumps(value), '')
                 row.append(value)
             row.append(_to_full_text(fields, record))
+            row.append(datastore_helpers.utcnow())
             rows.append(row)
 
+        # another %s after to_tsvector(%s) for _autogen_timestamp 
         sql_string = u'''INSERT INTO "{res_id}" ({columns})
-            VALUES ({values}, to_tsvector(%s));'''.format(
+            VALUES ({values}, to_tsvector(%s), %s);'''.format(
             res_id=data_dict['resource_id'],
             columns=sql_columns,
             values=', '.join(['%s' for field in field_names])
@@ -712,10 +777,11 @@ def upsert_data(context, data_dict):
 
             full_text = _to_full_text(fields, record)
 
+            # again, another %s for _autogen_timestamp
             if method == _UPDATE:
                 sql_string = u'''
                     UPDATE "{res_id}"
-                    SET ({columns}, "_full_text") = ({values}, to_tsvector(%s))
+                    SET ({columns}, "_full_text", "_autogen_timestamp") = ({values}, to_tsvector(%s), %s)
                     WHERE ({primary_key}) = ({primary_value});
                 '''.format(
                     res_id=data_dict['resource_id'],
@@ -729,7 +795,7 @@ def upsert_data(context, data_dict):
                     primary_value=u','.join(["%s"] * len(unique_keys))
                 )
                 results = context['connection'].execute(
-                    sql_string, used_values + [full_text] + unique_values)
+                    sql_string, used_values + [full_text,datastore_helpers.utcnow()] + unique_values)
 
                 # validate that exactly one row has been updated
                 if results.rowcount != 1:
@@ -737,13 +803,14 @@ def upsert_data(context, data_dict):
                         'key': [u'key "{0}" not found'.format(unique_values)]
                     })
 
+            # another %s for _autogen_timestamp
             elif method == _UPSERT:
                 sql_string = u'''
                     UPDATE "{res_id}"
-                    SET ({columns}, "_full_text") = ({values}, to_tsvector(%s))
+                    SET ({columns}, "_full_text", "_autogen_timestamp") = ({values}, to_tsvector(%s), %s)
                     WHERE ({primary_key}) = ({primary_value});
-                    INSERT INTO "{res_id}" ({columns}, "_full_text")
-                           SELECT {values}, to_tsvector(%s)
+                    INSERT INTO "{res_id}" ({columns}, "_full_text", "_autogen_timestamp")
+                           SELECT {values}, to_tsvector(%s), %s
                            WHERE NOT EXISTS (SELECT 1 FROM "{res_id}"
                                     WHERE ({primary_key}) = ({primary_value}));
                 '''.format(
@@ -759,8 +826,9 @@ def upsert_data(context, data_dict):
                 )
                 context['connection'].execute(
                     sql_string,
-                    (used_values + [full_text] + unique_values) * 2)
+                    (used_values + [full_text, datastore_helpers.utcnow()] + unique_values) * 2)
 
+    _cleanup_resource(data_dict['resource_id'], context['connection'])
 
 def _get_unique_key(context, data_dict):
     sql_get_unique_key = '''
@@ -807,6 +875,13 @@ def _to_full_text(fields, record):
     ft_types = ['int8', 'int4', 'int2', 'float4', 'float8', 'date', 'time',
                 'timetz', 'timestamp', 'numeric', 'text']
     for field in fields:
+        try:
+            fname = field['id'].decode('utf-8')
+            if fname == u'_autogen_timestamp':
+                continue
+        except:
+            pass 
+
         value = record.get(field['id'])
         if not value:
             continue
@@ -889,7 +964,7 @@ def delete_data(context, data_dict):
         'where': []
     }
 
-    for plugin in p.PluginImplementations(interfaces.IDatastore):
+    for plugin in p.PluginImplementations(interfaces.ITimeseries):
         query_dict = plugin.datastore_delete(context, data_dict,
                                              fields_types, query_dict)
 
@@ -915,7 +990,7 @@ def validate(context, data_dict):
         fields = datastore_helpers.get_list(data_dict_copy['sort'], False)
         data_dict_copy['sort'] = fields
 
-    for plugin in p.PluginImplementations(interfaces.IDatastore):
+    for plugin in p.PluginImplementations(interfaces.ITimeseries):
         data_dict_copy = plugin.datastore_validate(context,
                                                    data_dict_copy,
                                                    fields_types)
@@ -954,7 +1029,7 @@ def search_data(context, data_dict):
         'where': []
     }
 
-    for plugin in p.PluginImplementations(interfaces.IDatastore):
+    for plugin in p.PluginImplementations(interfaces.ITimeseries):
         query_dict = plugin.datastore_search(context, data_dict,
                                              fields_types, query_dict)
 
