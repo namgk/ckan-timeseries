@@ -12,7 +12,7 @@ Changes
 ------------
 * If you are coming from version < v0.1.0, the schema has changed. A command has been created to upgrade the schema. Please run the following command:
 ```
-paster --plugin=ckan datastore_ts -c <path to ini configuration file> upgrade-schema autogen_timestamp _autogen_timestamp
+paster --plugin=ckan timeseries -c <path to ini configuration file> upgrade-schema autogen_timestamp _autogen_timestamp
 ```
 
 * From v1.0.0 the plugin name has changed from "ckanext-datastore_ts" to "ckanext-timeseries", please install ckanext-timeseries as bellow.
@@ -36,7 +36,7 @@ To install ckanext-timeseries:
 
      . /usr/lib/ckan/default/bin/activate
 
-2. Install the ckanext-datastore_ts Python package into your virtual environment::
+2. Install the ckanext-timeseries Python package into your virtual environment::
 
      pip install ckanext-timeseries
 
@@ -60,9 +60,11 @@ ckan.datastore.write_url = postgresql://ckan_default:password@localhost/datastor
 
 ckan.datastore.read_url = postgresql://datastore_default:password@localhost/datastore_default
 
-CKAN Timeseries introduce a new configuration to set the maximum size of a resource table (as we are dealing with real time data). When a resource reaches this limit, it's table will be cleaned, the default 30% of the oldest data will be deleted. This percentage can be customized by user when creating a CKAN Timeseries resource. Please look at the wiki page for more detail.
+CKAN Timeseries introduces a new configuration to set the maximum size of a resource table (as we are dealing with real time data). When a resource reaches this limit, it's table will be cleaned, the default 30% of the oldest data will be deleted. This percentage can be customized by user when creating a CKAN Timeseries resource. Please look at the wiki page for more detail.
 
-ckan.timeseries.max_resource_size = 9000
+ckan.timeseries.max_resource_size = 500
+
+The number is observed in MB
 
 ------------------------
 Development Installation
