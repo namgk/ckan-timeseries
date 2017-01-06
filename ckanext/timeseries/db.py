@@ -1,26 +1,27 @@
-import json
+# encoding: utf-8
+
+import copy
 import datetime
+import distutils.version
+import hashlib
+import json
+import logging
 import os
+import pprint
 import urllib
 import urllib2
 import urlparse
-import logging
-import pprint
-import copy
-import hashlib
 
-import pylons
-import distutils.version
-import sqlalchemy
-from sqlalchemy.exc import (ProgrammingError, IntegrityError,
-                            DBAPIError, DataError)
-import psycopg2.extras
 import ckan.lib.cli as cli
 import ckan.plugins as p
 import ckan.plugins.toolkit as toolkit
-import ckanext.timeseries.interfaces as interfaces
-import ckanext.timeseries.helpers as datastore_helpers
-from ckan.common import OrderedDict
+import ckanext.datastore.helpers as datastore_helpers
+import ckanext.datastore.interfaces as interfaces
+import psycopg2.extras
+import sqlalchemy
+from ckan.common import OrderedDict, config
+from sqlalchemy.exc import (ProgrammingError, IntegrityError,
+                            DBAPIError, DataError)
 
 log = logging.getLogger(__name__)
 
@@ -63,7 +64,6 @@ _INSERT = 'insert'
 _UPSERT = 'upsert'
 _UPDATE = 'update'
 
-max_resource_size = datastore_helpers.get_max_resource_size()
 
 class InvalidDataError(Exception):
     """Exception that's raised if you try to add invalid data to the datastore.
@@ -73,6 +73,7 @@ class InvalidDataError(Exception):
 
     """
     pass
+
 
 def _pluck(field, arr):
     return [x[field] for x in arr]
@@ -86,8 +87,9 @@ def _is_valid_field_name(name):
     * can't contain double quote (")
     * can't be empty
     '''
-    return (name and name == name.strip() and not name.startswith('_')
-            and not '"' in name)
+    return (name and name == name.strip()
+            and not name.startswith('_')
+            and '"' not in name)
 
 
 def _is_valid_table_name(name):
@@ -102,9 +104,8 @@ def _get_engine(data_dict):
     engine = _engines.get(connection_url)
 
     if not engine:
-        import pylons
         extras = {'url': connection_url}
-        engine = sqlalchemy.engine_from_config(pylons.config,
+        engine = sqlalchemy.engine_from_config(config,
                                                'ckan.datastore.sqlalchemy.',
                                                **extras)
         _engines[connection_url] = engine
@@ -127,7 +128,7 @@ def _cache_types(context):
                 native_json))
 
             data_dict = {
-                'connection_url': pylons.config['ckan.datastore.write_url']}
+                'connection_url': config['ckan.datastore.write_url']}
             engine = _get_engine(data_dict)
             with engine.begin() as connection:
                 connection.execute(
@@ -135,7 +136,7 @@ def _cache_types(context):
                         'json' if native_json else 'text'))
             _pg_types.clear()
 
-            ## redo cache types with json now available.
+            # redo cache types with json now available.
             return _cache_types(context)
 
         psycopg2.extras.register_composite('nested',
@@ -215,7 +216,7 @@ def _guess_type(field):
     elif float in data_types:
         return 'numeric'
 
-    ##try iso dates
+    # try iso dates
     for format in _DATE_FORMATS:
         try:
             datetime.datetime.strptime(field, format)
@@ -255,7 +256,7 @@ def json_get_values(obj, current_list=None):
     elif isinstance(obj, dict):
         json_get_values(obj.items(), current_list)
     elif obj:
-        current_list.append(str(obj))
+        current_list.append(unicode(obj))
     return current_list
 
 
@@ -298,7 +299,6 @@ def create_table(context, data_dict):
     datastore_fields = [
         {'id': '_id', 'type': 'serial primary key'},
         {'id': '_full_text', 'type': 'tsvector'},
-        {'id': '_autogen_timestamp', 'type': 'timestamp with time zone'},
     ]
 
     # check first row of data for additional fields
@@ -332,7 +332,7 @@ def create_table(context, data_dict):
             })
         supplied_field_ids = records[0].keys()
         for field_id in supplied_field_ids:
-            if not field_id in field_ids:
+            if field_id not in field_ids:
                 extra_fields.append({
                     'id': field_id,
                     'type': _guess_type(records[0][field_id])
@@ -401,26 +401,6 @@ def create_alias(context, data_dict):
                     'alias': [u'"{0}" already exists'.format(alias)]
                 })
 
-def create_timestamp_index(context, data_dict):
-    if 'fields' not in data_dict:
-        return
-
-    connection = context['connection']
-    resource_id = data_dict['resource_id']
-    field_str = u'_autogen_timestamp'
-    index_method = 'btree' or 'gist'
-    name = _generate_index_name(resource_id, field_str)
-
-    sql_index_tmpl = u'CREATE {unique} INDEX "{name}" ON "{res_id}"'
-    sql_index_string_method = sql_index_tmpl + u' USING {method}({fields})'
-    sql_index_string_method = sql_index_string_method.format(
-            res_id=resource_id,
-            unique='',
-            name=name,
-            method=index_method, fields=field_str)
-    current_indexes = _get_index_names(context['connection'], resource_id)
-    if name not in current_indexes:
-        connection.execute(sql_index_string_method)
 
 def create_indexes(context, data_dict):
     connection = context['connection']
@@ -490,14 +470,18 @@ def _build_fts_indexes(connection, data_dict, sql_index_str_method, fields):
     fts_indexes = []
     resource_id = data_dict['resource_id']
     # FIXME: This is repeated on the plugin.py, we should keep it DRY
-    default_fts_lang = pylons.config.get('ckan.datastore.default_fts_lang')
+    default_fts_lang = config.get('ckan.datastore.default_fts_lang')
     if default_fts_lang is None:
         default_fts_lang = u'english'
     fts_lang = data_dict.get('lang', default_fts_lang)
 
     # create full-text search indexes
-    to_tsvector = lambda x: u"to_tsvector('{0}', {1})".format(fts_lang, x)
-    cast_as_text = lambda x: u'cast("{0}" AS text)'.format(x)
+    def to_tsvector(x):
+        return u"to_tsvector('{0}', {1})".format(fts_lang, x)
+
+    def cast_as_text(x):
+        return u'cast("{0}" AS text)'.format(x)
+
     full_text_field = {'type': 'tsvector', 'id': '_full_text'}
     for field in [full_text_field] + fields:
         if not datastore_helpers.should_fts_index_field_type(field['type']):
@@ -515,6 +499,7 @@ def _build_fts_indexes(connection, data_dict, sql_index_str_method, fields):
             unique='',
             name=_generate_index_name(resource_id, field_str),
             method=_get_fts_index_method(), fields=field_str))
+
     return fts_indexes
 
 
@@ -524,7 +509,7 @@ def _generate_index_name(resource_id, field):
 
 
 def _get_fts_index_method():
-    method = pylons.config.get('ckan.datastore.default_fts_index_method')
+    method = config.get('ckan.datastore.default_fts_index_method')
     return method or 'gist'
 
 
@@ -573,7 +558,6 @@ def _drop_indexes(context, data_dict, unique=False):
 def alter_table(context, data_dict):
     '''alter table from combination of fields and first row of data
     return: all fields of the resource table'''
-
     supplied_fields = data_dict.get('fields', [])
     current_fields = _get_fields(context, data_dict)
     if not supplied_fields:
@@ -586,7 +570,6 @@ def alter_table(context, data_dict):
     for num, field in enumerate(supplied_fields):
         # check to see if field definition is the same or and
         # extension of current fields
-
         if num < len(current_fields):
             if field['id'] != current_fields[num]['id']:
                 raise ValidationError({
@@ -594,7 +577,7 @@ def alter_table(context, data_dict):
                                 u'present or in wrong order').format(
                         field['id'])]
                 })
-            ## no need to check type as field already defined.
+            # no need to check type as field already defined.
             continue
 
         if 'type' not in field:
@@ -618,7 +601,7 @@ def alter_table(context, data_dict):
             })
         supplied_field_ids = records[0].keys()
         for field_id in supplied_field_ids:
-            if not field_id in field_ids:
+            if field_id not in field_ids:
                 new_fields.append({
                     'id': field_id,
                     'type': _guess_type(records[0][field_id])
@@ -642,43 +625,6 @@ def insert_data(context, data_dict):
     result = upsert_data(context, data_dict)
     return result
 
-def _get_resource_size(resource_id, conn):
-    sql_resource_size = 'select size from _table_metadata_ts \
-        where name = %s'
-    
-    size = conn.execute(sql_resource_size, resource_id).fetchone()
-    return size[0]
-
-def _cleanup_resource(resource_id, conn):
-    size = _get_resource_size(resource_id, conn)
-    if size < max_resource_size:
-        return
-
-    sql_resource_count = 'select min("_id"), count("_id") \
-        from "{}" '
-    min_count = conn.execute(sql_resource_count.format(resource_id)).fetchone()
-    min_id = int(min_count[0])
-    count = int(min_count[1])
-
-    # approximately calculate the max row counts based on
-    # current size and count ratio
-    # not work well when there's few rows (count/size not consistent)
-    max_count = max_resource_size*count/size
-    if count < max_count:
-        return
-
-    resource = p.toolkit.get_action('resource_show')(None, {'id':resource_id})
-    retention = int(resource['retention']) if 'retention' in resource else 33
-
-    exceeding_amount = count - max_count
-    retention_amount = int(retention * max_count / 100)
-    delete_up_to = min_id + retention_amount + exceeding_amount
-
-    sql_delete = 'delete from "{}" where _id < {}'.format(resource_id, delete_up_to)
-    log.debug('Squashing old data: {}'.format(sql_delete))
-
-    conn.execute(sql_delete)
-
 
 def upsert_data(context, data_dict):
     '''insert all data from records'''
@@ -690,15 +636,8 @@ def upsert_data(context, data_dict):
     fields = _get_fields(context, data_dict)
     field_names = _pluck('id', fields)
     records = data_dict['records']
-
-    # sanity checking
-    if not isinstance(records, list):
-        raise ValidationError({
-                'records': [u'"records is not a list']
-            })
-
     sql_columns = ", ".join(['"%s"' % name.replace(
-        '%', '%%') for name in field_names] + ['"_full_text"','"_autogen_timestamp"'])
+        '%', '%%') for name in field_names] + ['"_full_text"'])
 
     if method == _INSERT:
         rows = []
@@ -709,15 +648,14 @@ def upsert_data(context, data_dict):
             for field in fields:
                 value = record.get(field['id'])
                 if value and field['type'].lower() == 'nested':
-                    ## a tuple with an empty second value
+                    # a tuple with an empty second value
                     value = (json.dumps(value), '')
                 row.append(value)
             row.append(_to_full_text(fields, record))
-            row.append(datastore_helpers.utcnow())
             rows.append(row)
 
         sql_string = u'''INSERT INTO "{res_id}" ({columns})
-            VALUES ({values}, to_tsvector(%s), %s);'''.format(
+            VALUES ({values}, to_tsvector(%s));'''.format(
             res_id=data_dict['resource_id'],
             columns=sql_columns,
             values=', '.join(['%s' for field in field_names])
@@ -752,7 +690,7 @@ def upsert_data(context, data_dict):
             for field in fields:
                 value = record.get(field['id'])
                 if value is not None and field['type'].lower() == 'nested':
-                    ## a tuple with an empty second value
+                    # a tuple with an empty second value
                     record[field['id']] = (json.dumps(value), '')
 
             non_existing_filed_names = [field for field in record
@@ -777,7 +715,7 @@ def upsert_data(context, data_dict):
             if method == _UPDATE:
                 sql_string = u'''
                     UPDATE "{res_id}"
-                    SET ({columns}, "_full_text", "_autogen_timestamp") = ({values}, to_tsvector(%s), %s)
+                    SET ({columns}, "_full_text") = ({values}, to_tsvector(%s))
                     WHERE ({primary_key}) = ({primary_value});
                 '''.format(
                     res_id=data_dict['resource_id'],
@@ -791,7 +729,7 @@ def upsert_data(context, data_dict):
                     primary_value=u','.join(["%s"] * len(unique_keys))
                 )
                 results = context['connection'].execute(
-                    sql_string, used_values + [full_text,datastore_helpers.utcnow()] + unique_values)
+                    sql_string, used_values + [full_text] + unique_values)
 
                 # validate that exactly one row has been updated
                 if results.rowcount != 1:
@@ -802,10 +740,10 @@ def upsert_data(context, data_dict):
             elif method == _UPSERT:
                 sql_string = u'''
                     UPDATE "{res_id}"
-                    SET ({columns}, "_full_text", "_autogen_timestamp") = ({values}, to_tsvector(%s), %s)
+                    SET ({columns}, "_full_text") = ({values}, to_tsvector(%s))
                     WHERE ({primary_key}) = ({primary_value});
-                    INSERT INTO "{res_id}" ({columns}, "_full_text", "_autogen_timestamp")
-                           SELECT {values}, to_tsvector(%s), %s
+                    INSERT INTO "{res_id}" ({columns}, "_full_text")
+                           SELECT {values}, to_tsvector(%s)
                            WHERE NOT EXISTS (SELECT 1 FROM "{res_id}"
                                     WHERE ({primary_key}) = ({primary_value}));
                 '''.format(
@@ -821,15 +759,8 @@ def upsert_data(context, data_dict):
                 )
                 context['connection'].execute(
                     sql_string,
-                    (used_values + [full_text,datastore_helpers.utcnow()] + unique_values) * 2)
+                    (used_values + [full_text] + unique_values) * 2)
 
-    _cleanup_resource(data_dict['resource_id'], context['connection'])
-        # from multiprocessing import Pool
-        # pool = Pool(processes=1)
-        # pool.apply_async(_cleanup_resource, [data_dict['resource_id'], context['connection']], callback)
-
-def _callback(x):
-    print x
 
 def _get_unique_key(context, data_dict):
     sql_get_unique_key = '''
@@ -857,9 +788,9 @@ def _validate_record(record, num, field_names):
     # check record for sanity
     if not isinstance(record, dict):
         raise ValidationError({
-            'records': [u'row "{0}" is not a json object'.format(num + 1)] # num + 1 or num?
+            'records': [u'row "{0}" is not a json object'.format(num)]
         })
-    ## check for extra fields in data
+    # check for extra fields in data
     extra_keys = set(record.keys()) - set(field_names)
 
     if extra_keys:
@@ -876,13 +807,6 @@ def _to_full_text(fields, record):
     ft_types = ['int8', 'int4', 'int2', 'float4', 'float8', 'date', 'time',
                 'timetz', 'timestamp', 'numeric', 'text']
     for field in fields:
-        try:
-            fname = field['id'].decode('utf-8')
-            if fname == u'_autogen_timestamp':
-                continue
-        except:
-            pass 
-
         value = record.get(field['id'])
         if not value:
             continue
@@ -965,7 +889,7 @@ def delete_data(context, data_dict):
         'where': []
     }
 
-    for plugin in p.PluginImplementations(interfaces.ITimeseries):
+    for plugin in p.PluginImplementations(interfaces.IDatastore):
         query_dict = plugin.datastore_delete(context, data_dict,
                                              fields_types, query_dict)
 
@@ -991,7 +915,7 @@ def validate(context, data_dict):
         fields = datastore_helpers.get_list(data_dict_copy['sort'], False)
         data_dict_copy['sort'] = fields
 
-    for plugin in p.PluginImplementations(interfaces.ITimeseries):
+    for plugin in p.PluginImplementations(interfaces.IDatastore):
         data_dict_copy = plugin.datastore_validate(context,
                                                    data_dict_copy,
                                                    fields_types)
@@ -1030,7 +954,7 @@ def search_data(context, data_dict):
         'where': []
     }
 
-    for plugin in p.PluginImplementations(interfaces.ITimeseries):
+    for plugin in p.PluginImplementations(interfaces.IDatastore):
         query_dict = plugin.datastore_search(context, data_dict,
                                              fields_types, query_dict)
 
@@ -1154,7 +1078,6 @@ def create(context, data_dict):
             alter_table(context, data_dict)
         insert_data(context, data_dict)
         create_indexes(context, data_dict)
-        create_timestamp_index(context, data_dict)
         create_alias(context, data_dict)
         if data_dict.get('private'):
             _change_privilege(context, data_dict, 'REVOKE')
@@ -1248,7 +1171,7 @@ def delete(context, data_dict):
     trans = context['connection'].begin()
     try:
         # check if table exists
-        if not 'filters' in data_dict:
+        if 'filters' not in data_dict:
             context['connection'].execute(
                 u'DROP TABLE "{0}" CASCADE'.format(data_dict['resource_id'])
             )
@@ -1267,12 +1190,12 @@ def delete(context, data_dict):
 def search(context, data_dict):
     engine = _get_engine(data_dict)
     context['connection'] = engine.connect()
-    # timeout = context.get('query_timeout', _TIMEOUT)
+    timeout = context.get('query_timeout', _TIMEOUT)
     _cache_types(context)
 
     try:
-        # context['connection'].execute(
-        #     u'SET LOCAL statement_timeout TO {0}'.format(timeout))
+        context['connection'].execute(
+            u'SET LOCAL statement_timeout TO {0}'.format(timeout))
         return search_data(context, data_dict)
     except DBAPIError, e:
         if e.orig.pgcode == _PG_ERR_CODE['query_canceled']:
@@ -1407,8 +1330,8 @@ def make_public(context, data_dict):
 
 
 def get_all_resources_ids_in_datastore():
-    read_url = pylons.config.get('ckan.datastore.read_url')
-    write_url = pylons.config.get('ckan.datastore.write_url')
+    read_url = config.get('ckan.datastore.read_url')
+    write_url = config.get('ckan.datastore.write_url')
     data_dict = {
         'connection_url': read_url or write_url
     }
