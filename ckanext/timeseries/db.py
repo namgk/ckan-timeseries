@@ -856,7 +856,7 @@ def _validate_record(record, num, field_names):
     # check record for sanity
     if not isinstance(record, dict):
         raise ValidationError({
-            'records': [u'row "{0}" is not a json object'.format(num)]
+            'records': [u'row "{0}" is not a json object'.format(num + 1)] # num + 1 or num?
         })
     # check for extra fields in data
     extra_keys = set(record.keys()) - set(field_names)
