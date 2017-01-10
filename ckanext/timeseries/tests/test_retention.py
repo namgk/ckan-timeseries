@@ -85,6 +85,9 @@ class TestRetentionPolicy(tests.WsgiAppCase):
         }
 
         result = helpers.call_action('datastore_ts_create', **data)
+        del data['fields']
+        data['method'] = 'insert'
+        result = helpers.call_action('datastore_ts_upsert', **data)
         size = db._get_resource_size(self.resource_ids[ret_idx], self.Session.connection())
         
         min_count = self.Session.connection().execute(sql_resource_count.format(self.resource_ids[ret_idx])).fetchone()
@@ -94,7 +97,7 @@ class TestRetentionPolicy(tests.WsgiAppCase):
         print(count, min_id)
 
         assert min_id != 1
-        assert count < 2500
+        assert count < 5000
 
     # def test_get_resource_size(self):
     #     size = db._get_resource_size(self.resource_ids[3], self.Session.connection())

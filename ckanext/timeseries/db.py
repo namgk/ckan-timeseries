@@ -610,8 +610,13 @@ def _cleanup_resource(resource_id, conn):
     retention_amount = int(retention * max_count / 100)
     delete_up_to = min_id + retention_amount + exceeding_amount
 
-    sql_delete = 'delete from "{}" where _id < {}'.format(resource_id, delete_up_to)
-    log.debug('Squashing old data: {}'.format(sql_delete))
+    trans = conn.begin()
+    try:
+        sql_delete = 'delete from "{}" where _id < {}'.format(resource_id, delete_up_to)
+        log.debug('Squashing old data: {}'.format(sql_delete))
+        trans.commit()
+    except Exception, e:
+        trans.rollback()
 
     conn.execute(sql_delete)
 
@@ -688,6 +693,12 @@ def insert_data(context, data_dict):
 
 def upsert_data(context, data_dict):
     '''insert all data from records'''
+    try:
+        _cleanup_resource(data_dict['resource_id'], context['connection'])
+    except Exception, e:
+        log.warn("Error while cleaning up data {0!r}".format(e.message))
+        pass
+
     if not data_dict.get('records'):
         return
 
@@ -827,8 +838,6 @@ def upsert_data(context, data_dict):
                 context['connection'].execute(
                     sql_string,
                     (used_values + [full_text, datastore_helpers.utcnow()] + unique_values) * 2)
-
-    _cleanup_resource(data_dict['resource_id'], context['connection'])
 
 def _get_unique_key(context, data_dict):
     sql_get_unique_key = '''
