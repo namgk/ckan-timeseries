@@ -246,17 +246,22 @@ class TimeseriesPlugin(p.SingletonPlugin):
                 'datastore_ts_change_permissions': auth.datastore_change_permissions}
 
     def before_map(self, m):
-        m.connect('/datastore/dump/{resource_id}',
-                  controller='ckanext.datastore.controller:DatastoreController',
+        m.connect('/datastore_ts/dump/{resource_id}',
+                  controller='ckanext.timeseries.controller:TimeseriesController',
                   action='dump')
         return m
 
     def before_show(self, resource_dict):
         # Modify the resource url of datastore resources so that
         # they link to the datastore dumps.
-        if resource_dict.get('url_type') == 'datastore':
+
+        # if resource_dict.get('url_type') == 'datastore':
+        connection = db._get_engine(
+                {'connection_url': self.write_url}).connect()
+
+        if db._is_timeseries({"connection": connection},resource_dict['id']):
             resource_dict['url'] = p.toolkit.url_for(
-                controller='ckanext.datastore.controller:DatastoreController',
+                controller='ckanext.timeseries.controller:TimeseriesController',
                 action='dump', resource_id=resource_dict['id'],
                 qualified=True)
 

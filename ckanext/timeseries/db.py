@@ -585,6 +585,18 @@ def _get_resource_size(resource_id, conn):
     size = conn.execute(sql_resource_size, resource_id).fetchone()
     return size[0]
 
+def _is_timeseries(context, resource_id):
+    try:
+        all_fields = context['connection'].execute(
+            u'SELECT * FROM "{0}" LIMIT 1'.format(resource_id)
+        )
+        for field in all_fields.cursor.description:
+            if field[0] == '_autogen_timestamp':
+                return True
+    except:
+        return False
+    return False
+
 def _cleanup_resource(resource_id, conn):
     size = _get_resource_size(resource_id, conn)
     if size < max_resource_size:

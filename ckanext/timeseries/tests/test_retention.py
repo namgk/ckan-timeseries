@@ -99,6 +99,10 @@ class TestRetentionPolicy(tests.WsgiAppCase):
         assert min_id != 1
         assert count < 5000
 
+        # TODO: create another test for is_timeseries
+        assert db._is_timeseries({"connection": self.Session.connection()}, data['resource_id'])
+
+
     # def test_get_resource_size(self):
     #     size = db._get_resource_size(self.resource_ids[3], self.Session.connection())
     #     print(size)

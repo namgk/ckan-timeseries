@@ -4,6 +4,8 @@ import StringIO
 import unicodecsv as csv
 
 import pylons
+import ckanext.timeseries.helpers as datastore_helpers
+
 
 from ckan.plugins.toolkit import (
     Invalid,
@@ -22,7 +24,7 @@ int_validator = get_validator('int_validator')
 PAGINATE_BY = 10000
 
 
-class DatastoreController(BaseController):
+class TimeseriesController(BaseController):
     def dump(self, resource_id):
         try:
             offset = int_validator(request.GET.get('offset', 0), {})
@@ -32,6 +34,10 @@ class DatastoreController(BaseController):
             limit = int_validator(request.GET.get('limit'), {})
         except Invalid as e:
             abort(400, u'limit: ' + e.error)
+        try:
+            fromtime = '3d' #datastore_helpers.timestamp_from_string(request.GET.get('fromtime'))
+        except:
+            abort(400, u'fromtime has wrong format')
 
         wr = None
         while True:
@@ -39,12 +45,13 @@ class DatastoreController(BaseController):
                 break
 
             try:
-                result = get_action('datastore_search')(None, {
+                result = get_action('datastore_ts_search')(None, {
                     'resource_id': resource_id,
                     'limit':
                         PAGINATE_BY if limit is None
                         else min(PAGINATE_BY, limit),
                     'offset': offset,
+                    'fromtime': fromtime
                     })
             except ObjectNotFound:
                 abort(404, _('DataStore resource not found'))
