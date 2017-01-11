@@ -35,7 +35,7 @@ class TimeseriesController(BaseController):
         except Invalid as e:
             abort(400, u'limit: ' + e.error)
         try:
-            fromtime = '3d' #datastore_helpers.timestamp_from_string(request.GET.get('fromtime'))
+            fromtime = 'last 3d' #datastore_helpers.timestamp_from_string(request.GET.get('fromtime'))
         except:
             abort(400, u'fromtime has wrong format')
 

@@ -47,7 +47,7 @@ class DatastoreException(Exception):
 
 class TimeseriesPlugin(p.SingletonPlugin):
     p.implements(p.IConfigurable, inherit=True)
-    p.implements(p.IConfigurer)
+    # p.implements(p.IConfigurer)
     p.implements(p.IActions)
     p.implements(p.IAuthFunctions)
     p.implements(p.IResourceUrlChange)
@@ -247,7 +247,7 @@ class TimeseriesPlugin(p.SingletonPlugin):
 
     def before_map(self, m):
         m.connect('/datastore_ts/dump/{resource_id}',
-                  controller='ckanext.timeseries.controller:TimeseriesController',
+                  controller='ckanext.timeseries.controller.datastore_ts:TimeseriesController',
                   action='dump')
         return m
 
@@ -261,7 +261,7 @@ class TimeseriesPlugin(p.SingletonPlugin):
 
         if db._is_timeseries({"connection": connection},resource_dict['id']):
             resource_dict['url'] = p.toolkit.url_for(
-                controller='ckanext.timeseries.controller:TimeseriesController',
+                controller='ckanext.timeseries.controller.datastore_ts:TimeseriesController',
                 action='dump', resource_id=resource_dict['id'],
                 qualified=True)
 
