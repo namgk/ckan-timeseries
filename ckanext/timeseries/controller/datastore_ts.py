@@ -30,14 +30,21 @@ class TimeseriesController(BaseController):
             offset = int_validator(request.GET.get('offset', 0), {})
         except Invalid as e:
             abort(400, u'offset: ' + e.error)
+
         try:
             limit = int_validator(request.GET.get('limit'), {})
         except Invalid as e:
             abort(400, u'limit: ' + e.error)
+
         try:
-            fromtime = 'last 3d' #datastore_helpers.timestamp_from_string(request.GET.get('fromtime'))
+            fromtime = datastore_helpers.timestamp_from_string(request.GET.get('fromtime'))
         except:
-            abort(400, u'fromtime has wrong format')
+            fromtime = 'last 30m'
+
+        try:
+            totime = datastore_helpers.timestamp_from_string(request.GET.get('totime'))
+        except:
+            totime = 'last 0s'
 
         wr = None
         while True:
@@ -51,7 +58,8 @@ class TimeseriesController(BaseController):
                         PAGINATE_BY if limit is None
                         else min(PAGINATE_BY, limit),
                     'offset': offset,
-                    'fromtime': fromtime
+                    'fromtime': fromtime,
+                    'totime': totime
                     })
             except ObjectNotFound:
                 abort(404, _('DataStore resource not found'))

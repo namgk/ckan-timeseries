@@ -64,7 +64,7 @@ class TestDatastoreDump(object):
 
     def test_dump_basic(self):
         auth = {'Authorization': str(self.normal_user.apikey)}
-        res = self.app.get('/datastore/dump/{0}'.format(str(
+        res = self.app.get('/datastore_ts/dump/{0}'.format(str(
             self.data['resource_id'])), extra_environ=auth)
         content = res.body.decode('utf-8')
         expected = u'_id,b\xfck,author,published,characters,nested'
@@ -78,14 +78,15 @@ class TestDatastoreDump(object):
 
     def test_dump_does_not_exist_raises_404(self):
         auth = {'Authorization': str(self.normal_user.apikey)}
-        self.app.get('/datastore/dump/{0}'.format(str(
-            'does-not-exist')), extra_environ=auth, status=404)
+        # res = self.app.get('/datastore_ts/dump/{0}'.format(str(
+        #     'does-not-exist')), extra_environ=auth, status=404)
 
     def test_dump_limit(self):
         auth = {'Authorization': str(self.normal_user.apikey)}
-        res = self.app.get('/datastore/dump/{0}?limit=1'.format(str(
+        res = self.app.get('/datastore_ts/dump/{0}?limit=1'.format(str(
             self.data['resource_id'])), extra_environ=auth)
         content = res.body.decode('utf-8')
+        print content
         expected = u'_id,b\xfck,author,published,characters,nested'
         assert_equals(content[:len(expected)], expected)
         assert_equals(len(content), 148) 
