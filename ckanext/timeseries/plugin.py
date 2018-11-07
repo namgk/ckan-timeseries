@@ -113,7 +113,7 @@ class TimeseriesPlugin(p.SingletonPlugin):
             #'datastore_change_permissions': auth.datastore_change_permissions,
             #'datastore_function_create': auth.datastore_function_create,
             #'datastore_function_delete': auth.datastore_function_delete,
-            'datastore_run_triggers': auth.datastore_run_triggers,
+            #'datastore_run_triggers': auth.datastore_run_triggers,
         }
 
     # IRoutes

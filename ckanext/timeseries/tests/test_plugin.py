@@ -16,15 +16,15 @@ assert_raises = nose.tools.assert_raises
 
 class TestPluginLoadingOrder(object):
     def setup(self):
-        if p.plugin_loaded('datastore'):
+        if p.plugin_loaded('timeseries'):
             p.unload('timeseries')
-        if p.plugin_loaded('sample_datastore_plugin'):
+        if p.plugin_loaded('sample_timeseries_plugin'):
             p.unload('sample_timeseries_plugin')
 
     def teardown(self):
-        if p.plugin_loaded('sample_datastore_plugin'):
+        if p.plugin_loaded('sample_timeseries_plugin'):
             p.unload('sample_timeseries_plugin')
-        if p.plugin_loaded('datastore'):
+        if p.plugin_loaded('timeseries'):
             p.unload('timeseries')
 
     def test_loading_datastore_first_works(self):

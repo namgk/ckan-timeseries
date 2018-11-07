@@ -73,4 +73,5 @@ class TestDatastoreInfo(DatastoreFunctionalTestBase):
             "http://test.ckan.net/api/3/action/timeseries_search?resource_id=588dfa82-760c-45a2-b78a-e3bc314a4a9b&amp;limit=5&amp;q=title:jones",
         )
         for url in expected_urls:
+            print page
             assert url in page, url
