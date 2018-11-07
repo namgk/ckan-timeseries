@@ -1,9 +1,11 @@
+# encoding: utf-8
+
 import json
 import nose
+import urllib
 import pprint
 import time
 
-import pylons
 import sqlalchemy.orm as orm
 
 import ckan.plugins as p
@@ -11,27 +13,30 @@ import ckan.lib.create_test_data as ctd
 import ckan.model as model
 import ckan.tests.legacy as tests
 
-import ckanext.timeseries.db as db
-from ckanext.timeseries.tests.helpers import extract, rebuild_all_dbs
 from ckanext.timeseries.helpers import utcnow
+
+from ckan.common import config
+import ckanext.timeseries.backend.postgres as db
+from ckanext.timeseries.tests.helpers import (
+    extract, rebuild_all_dbs, set_url_type,
+    DatastoreFunctionalTestBase, DatastoreLegacyTestBase)
 
 import ckan.tests.helpers as helpers
 import ckan.tests.factories as factories
 
 assert_equals = nose.tools.assert_equals
 assert_raises = nose.tools.assert_raises
+assert_in = nose.tools.assert_in
 
-class TestRetentionPolicy(tests.WsgiAppCase):
+
+class TestTimeseriesRetention(DatastoreLegacyTestBase):
     sysadmin_user = None
     normal_user = None
 
     @classmethod
     def setup_class(cls):
-        if not tests.is_datastore_supported():
-            raise nose.SkipTest("Datastore not supported")
-        p.load('timeseries')
-        helpers.reset_db()
-
+        cls.app = helpers._get_test_app()
+        super(TestTimeseriesRetention, cls).setup_class()
         # Creating 3 resources with 3 retention policies: 
         # to remove 10, 20 and 90% of data when the 
         # resource gets to its size limit
@@ -46,19 +51,11 @@ class TestRetentionPolicy(tests.WsgiAppCase):
                     'package_id': package['id']
                 },
             }
-            result = helpers.call_action('datastore_ts_create', **data)
+            result = helpers.call_action('timeseries_create', **data)
             cls.resource_ids.append(result['resource_id'])
 
-        engine = db._get_engine(
-                {'connection_url': pylons.config['ckan.datastore.write_url']}
-            )
+        engine = db.get_write_engine()
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
-
-    @classmethod
-    def teardown_class(cls):
-        rebuild_all_dbs(cls.Session)
-        p.unload('timeseries')
-        cls.Session.remove()
 
     def test_retention_in_action(self):
         sql_resource_count = 'select min("_id"), count("_id") \
@@ -84,10 +81,10 @@ class TestRetentionPolicy(tests.WsgiAppCase):
              ]
         }
 
-        result = helpers.call_action('datastore_ts_create', **data)
+        result = helpers.call_action('timeseries_create', **data)
         del data['fields']
         data['method'] = 'insert'
-        result = helpers.call_action('datastore_ts_upsert', **data)
+        result = helpers.call_action('timeseries_upsert', **data)
         size = db._get_resource_size(self.resource_ids[ret_idx], self.Session.connection())
         
         min_count = self.Session.connection().execute(sql_resource_count.format(self.resource_ids[ret_idx])).fetchone()
@@ -101,35 +98,3 @@ class TestRetentionPolicy(tests.WsgiAppCase):
 
         # TODO: create another test for is_timeseries
         assert db._is_timeseries({"connection": self.Session.connection()}, data['resource_id'])
-
-
-    # def test_get_resource_size(self):
-    #     size = db._get_resource_size(self.resource_ids[3], self.Session.connection())
-    #     print(size)
-    #     assert size == 8192
-
-    # def test_cleanup_resource(self):
-    #     sql_resource_count = 'select min("_id"), count("_id") \
-    #     from "{}" '
-
-    #     for i, ret in enumerate(self.retention):
-    #         min_count = self.Session.connection().execute(sql_resource_count.format(self.resource_ids[i])).fetchone()
-    #         print(min_count)
-
-    #         min_id = int(min_count[0])
-    #         count = int(min_count[1])
-
-    #         retention_amount = int(self.retention[i] * count / 100)
-
-    #         db._cleanup_resource(self.resource_ids[i], self.Session.connection())
-
-    #         min_count = self.Session.connection().execute(sql_resource_count.format(self.resource_ids[i])).fetchone()
-    #         min_id2 = int(min_count[0])
-    #         count2 = int(min_count[1])
-
-    #         print(min_id, min_id2, count, count2, retention_amount)
-
-    #         assert (min_id2 - min_id) == retention_amount
-    #         assert (count - count2) == retention_amount
-
-

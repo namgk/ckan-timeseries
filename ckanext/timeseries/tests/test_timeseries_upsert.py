@@ -1,33 +1,42 @@
+# encoding: utf-8
+
 import json
 import nose
-import datetime
+import urllib
+import pprint
+import time
 
-import pylons
 import sqlalchemy.orm as orm
 
 import ckan.plugins as p
 import ckan.lib.create_test_data as ctd
 import ckan.model as model
 import ckan.tests.legacy as tests
+
+from ckanext.timeseries.helpers import utcnow
+
+from ckan.common import config
+import ckanext.timeseries.backend.postgres as db
+from ckanext.timeseries.tests.helpers import (
+    extract, rebuild_all_dbs, set_url_type,
+    DatastoreFunctionalTestBase, DatastoreLegacyTestBase)
+
 import ckan.tests.helpers as helpers
+import ckan.tests.factories as factories
 
-import ckanext.datastore.db as db
-from ckanext.datastore.tests.helpers import rebuild_all_dbs, set_url_type
+assert_equals = nose.tools.assert_equals
+assert_raises = nose.tools.assert_raises
+assert_in = nose.tools.assert_in
 
-assert_equal = nose.tools.assert_equal
 
-
-class TestDatastoreUpsert(tests.WsgiAppCase):
+class TestTimeseriesUpsert(DatastoreLegacyTestBase):
     sysadmin_user = None
     normal_user = None
 
     @classmethod
     def setup_class(cls):
-        if not tests.is_datastore_supported():
-            raise nose.SkipTest("Datastore not supported")
-        p.load('timeseries')
-        helpers.reset_db()
-
+        cls.app = helpers._get_test_app()
+        super(TestTimeseriesUpsert, cls).setup_class()
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -50,21 +59,13 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
             }
         postparams = '%s=1' % json.dumps(cls.data)
         auth = {'Authorization': str(cls.sysadmin_user.apikey)}
-        res = cls.app.post('/api/action/datastore_ts_create', params=postparams,
+        res = cls.app.post('/api/action/timeseries_create', params=postparams,
                            extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True
 
-        engine = db._get_engine(
-            {'connection_url': pylons.config['ckan.datastore.write_url']})
+        engine = db.get_write_engine()
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
-
-
-    @classmethod
-    def teardown_class(cls):
-        rebuild_all_dbs(cls.Session)
-        p.unload('timeseries')
-
 
     def test_insert_timeseries(self):
         hhguide = u"hitchhiker's guide to the galaxy"
@@ -80,7 +81,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 

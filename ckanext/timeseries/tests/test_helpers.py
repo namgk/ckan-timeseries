@@ -1,48 +1,18 @@
-# -*- encoding: utf-8 -*-
+# encoding: utf-8
 
-import pylons
 import sqlalchemy.orm as orm
 import nose
 
-import datetime
+from ckan.common import config
 import ckanext.timeseries.helpers as datastore_helpers
+from ckanext.timeseries.tests.helpers import DatastoreLegacyTestBase
+import ckanext.timeseries.backend.postgres as postgres_backend
 import ckanext.timeseries.tests.helpers as datastore_test_helpers
-import ckanext.timeseries.db as db
+import ckanext.timeseries.backend.postgres as db
 
 
 eq_ = nose.tools.eq_
 
-class TestTimestamp(object):
-    def test_timestamp_from_string(self):
-        a_str = "2016-10-02T03:40:21.019793+00:00"
-        print(datastore_helpers.timestamp_from_string(a_str))
-
-        now = datastore_helpers.utcnow()
-
-        a_str = "last 2s"
-        expected = now - datetime.timedelta(seconds=2)
-        parsed = datastore_helpers.timestamp_from_string(a_str)
-        assert parsed.replace(microsecond=0) == expected.replace(microsecond=0)
-
-        a_str = "last 10m"
-        expected = now - datetime.timedelta(minutes=10)
-        parsed = datastore_helpers.timestamp_from_string(a_str)
-        assert parsed.replace(microsecond=0) == expected.replace(microsecond=0)
-
-        a_str = "last 10m,5s"
-        expected = now - datetime.timedelta(seconds=5, minutes=10)
-        parsed = datastore_helpers.timestamp_from_string(a_str)
-        assert parsed.replace(microsecond=0) == expected.replace(microsecond=0)
-
-        a_str = "last 10m,1h,5s"
-        expected = now - datetime.timedelta(hours=1, seconds=5, minutes=10)
-        parsed = datastore_helpers.timestamp_from_string(a_str)
-        assert parsed.replace(microsecond=0) == expected.replace(microsecond=0)
-
-        a_str = "last 10d,1h,5s"
-        expected = now - datetime.timedelta(hours=1, seconds=5, days=10)
-        parsed = datastore_helpers.timestamp_from_string(a_str)
-        assert parsed.replace(microsecond=0) == expected.replace(microsecond=0)
 
 class TestTypeGetters(object):
     def test_get_list(self):
@@ -71,10 +41,10 @@ class TestTypeGetters(object):
                      'SELECT * FROM "foo"; SELECT * FROM "abc"']
 
         for single in singles:
-            assert datastore_helpers.is_single_statement(single) is True
+            assert postgres_backend.is_single_statement(single) is True
 
         for multiple in multiples:
-            assert datastore_helpers.is_single_statement(multiple) is False
+            assert postgres_backend.is_single_statement(multiple) is False
 
     def test_should_fts_index_field_type(self):
         indexable_field_types = ['tsvector',
@@ -94,17 +64,12 @@ class TestTypeGetters(object):
             assert datastore_helpers.should_fts_index_field_type(non_indexable) is False
 
 
-class TestGetTables(object):
+class TestGetTables(DatastoreLegacyTestBase):
 
     @classmethod
     def setup_class(cls):
-
-        if not pylons.config.get('ckan.datastore.read_url'):
-            raise nose.SkipTest('Datastore runs on legacy mode, skipping...')
-
-        engine = db._get_engine(
-            {'connection_url': pylons.config['ckan.datastore.write_url']}
-        )
+        super(TestGetTables, cls).setup_class()
+        engine = db.get_write_engine()
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
 
         datastore_test_helpers.clear_db(cls.Session)
@@ -117,10 +82,6 @@ class TestGetTables(object):
         ]
         for create_table_sql in create_tables:
             cls.Session.execute(create_table_sql)
-
-    @classmethod
-    def teardown_class(cls):
-        datastore_test_helpers.clear_db(cls.Session)
 
     def test_get_table_names(self):
 

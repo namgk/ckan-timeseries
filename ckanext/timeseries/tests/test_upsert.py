@@ -1,8 +1,9 @@
+# encoding: utf-8
+
 import json
 import nose
 import datetime
 
-import pylons
 import sqlalchemy.orm as orm
 
 import ckan.plugins as p
@@ -10,24 +11,71 @@ import ckan.lib.create_test_data as ctd
 import ckan.model as model
 import ckan.tests.legacy as tests
 import ckan.tests.helpers as helpers
+import ckan.tests.factories as factories
 
-import ckanext.datastore.db as db
-from ckanext.datastore.tests.helpers import rebuild_all_dbs, set_url_type
+from ckan.common import config
+
+import ckanext.timeseries.backend.postgres as db
+from ckanext.timeseries.tests.helpers import (
+    set_url_type, DatastoreFunctionalTestBase, DatastoreLegacyTestBase)
 
 assert_equal = nose.tools.assert_equal
 
 
-class TestDatastoreUpsert(tests.WsgiAppCase):
+class TestDatastoreUpsertNewTests(DatastoreFunctionalTestBase):
+    def test_upsert_doesnt_crash_with_json_field(self):
+        resource = factories.Resource()
+        data = {
+            'resource_id': resource['id'],
+            'force': True,
+            'primary_key': 'id',
+            'fields': [{'id': 'id', 'type': 'text'},
+                       {'id': 'book', 'type': 'json'},
+                       {'id': 'author', 'type': 'text'}],
+        }
+        helpers.call_action('timeseries_create', **data)
+        data = {
+            'resource_id': resource['id'],
+            'force': True,
+            'method': 'insert',
+            'records': [
+                {'id': '1',
+                 'book': {'code': 'A', 'title': u'ñ'},
+                 'author': 'tolstoy'}],
+        }
+        helpers.call_action('timeseries_upsert', **data)
+
+    def test_upsert_doesnt_crash_with_json_field_with_string_value(self):
+        resource = factories.Resource()
+        data = {
+            'resource_id': resource['id'],
+            'force': True,
+            'primary_key': 'id',
+            'fields': [{'id': 'id', 'type': 'text'},
+                       {'id': 'book', 'type': 'json'},
+                       {'id': 'author', 'type': 'text'}],
+        }
+        helpers.call_action('timeseries_create', **data)
+        data = {
+            'resource_id': resource['id'],
+            'force': True,
+            'method': 'insert',
+            'records': [
+                {'id': '1',
+                 'book': u'ñ',
+                 'author': 'tolstoy'}],
+        }
+        helpers.call_action('timeseries_upsert', **data)
+
+
+class TestDatastoreUpsert(DatastoreLegacyTestBase):
     sysadmin_user = None
     normal_user = None
 
     @classmethod
     def setup_class(cls):
-        if not tests.is_datastore_supported():
-            raise nose.SkipTest("Datastore not supported")
-        p.load('timeseries')
-        helpers.reset_db()
-
+        cls.app = helpers._get_test_app()
+        super(TestDatastoreUpsert, cls).setup_class()
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -50,26 +98,20 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
             }
         postparams = '%s=1' % json.dumps(cls.data)
         auth = {'Authorization': str(cls.sysadmin_user.apikey)}
-        res = cls.app.post('/api/action/datastore_ts_create', params=postparams,
+        res = cls.app.post('/api/action/timeseries_create', params=postparams,
                            extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True
 
-        engine = db._get_engine(
-            {'connection_url': pylons.config['ckan.datastore.write_url']})
+        engine = db.get_write_engine()
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
-
-    @classmethod
-    def teardown_class(cls):
-        rebuild_all_dbs(cls.Session)
-        p.unload('timeseries')
 
     def test_upsert_requires_auth(self):
         data = {
             'resource_id': self.data['resource_id']
         }
         postparams = '%s=1' % json.dumps(data)
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             status=403)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -77,7 +119,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
     def test_upsert_empty_fails(self):
         postparams = '%s=1' % json.dumps({})
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is False
@@ -103,7 +145,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -134,7 +176,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -159,7 +201,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -183,7 +225,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -207,7 +249,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -222,7 +264,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
@@ -237,7 +279,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
@@ -256,7 +298,7 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True, res_dict
@@ -266,20 +308,19 @@ class TestDatastoreUpsert(tests.WsgiAppCase):
         record = [r for r in results.fetchall() if r[3] == hhguide] # r[2] is autogen_timestamp
         self.Session.remove()
         assert len(record) == 1, record
-        assert_equal(json.loads(record[0][5].json),
+        assert_equal(json.loads(record[0][5].json), # 4->5 autogen
                      data['records'][0]['nested'])
 
 
 
-class TestDatastoreInsert(tests.WsgiAppCase):
+class TestDatastoreInsert(DatastoreLegacyTestBase):
     sysadmin_user = None
     normal_user = None
 
     @classmethod
     def setup_class(cls):
-        if not tests.is_datastore_supported():
-            raise nose.SkipTest("Datastore not supported")
-        p.load('timeseries')
+        cls.app = helpers._get_test_app()
+        super(TestDatastoreInsert, cls).setup_class()
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -302,19 +343,13 @@ class TestDatastoreInsert(tests.WsgiAppCase):
             }
         postparams = '%s=1' % json.dumps(cls.data)
         auth = {'Authorization': str(cls.sysadmin_user.apikey)}
-        res = cls.app.post('/api/action/datastore_ts_create', params=postparams,
+        res = cls.app.post('/api/action/timeseries_create', params=postparams,
                            extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True
 
-        engine = db._get_engine(
-            {'connection_url': pylons.config['ckan.datastore.write_url']})
+        engine = db.get_write_engine()
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
-
-    @classmethod
-    def teardown_class(cls):
-        p.unload('timeseries')
-        rebuild_all_dbs(cls.Session)
 
     def test_insert_non_existing_field(self):
         data = {
@@ -325,7 +360,7 @@ class TestDatastoreInsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
@@ -340,7 +375,7 @@ class TestDatastoreInsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
@@ -360,7 +395,7 @@ class TestDatastoreInsert(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -373,15 +408,14 @@ class TestDatastoreInsert(tests.WsgiAppCase):
         assert results.rowcount == 3
 
 
-class TestDatastoreUpdate(tests.WsgiAppCase):
+class TestDatastoreUpdate(DatastoreLegacyTestBase):
     sysadmin_user = None
     normal_user = None
 
     @classmethod
     def setup_class(cls):
-        if not tests.is_datastore_supported():
-            raise nose.SkipTest("Datastore not supported")
-        p.load('timeseries')
+        cls.app = helpers._get_test_app()
+        super(TestDatastoreUpdate, cls).setup_class()
         ctd.CreateTestData.create()
         cls.sysadmin_user = model.User.get('testsysadmin')
         cls.normal_user = model.User.get('annafan')
@@ -409,19 +443,13 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
             }
         postparams = '%s=1' % json.dumps(cls.data)
         auth = {'Authorization': str(cls.sysadmin_user.apikey)}
-        res = cls.app.post('/api/action/datastore_ts_create', params=postparams,
+        res = cls.app.post('/api/action/timeseries_create', params=postparams,
                            extra_environ=auth)
         res_dict = json.loads(res.body)
         assert res_dict['success'] is True
 
-        engine = db._get_engine(
-            {'connection_url': pylons.config['ckan.datastore.write_url']})
+        engine = db.get_write_engine()
         cls.Session = orm.scoped_session(orm.sessionmaker(bind=engine))
-
-    @classmethod
-    def teardown_class(cls):
-        p.unload('timeseries')
-        rebuild_all_dbs(cls.Session)
 
     def test_update_basic(self):
         c = self.Session.connection()
@@ -442,8 +470,9 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth)
+        
         res_dict = json.loads(res.body)
 
         assert res_dict['success'] is True
@@ -471,7 +500,7 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -496,7 +525,7 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth)
         res_dict = json.loads(res.body)
 
@@ -521,7 +550,7 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
@@ -536,7 +565,7 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 
@@ -551,7 +580,7 @@ class TestDatastoreUpdate(tests.WsgiAppCase):
 
         postparams = '%s=1' % json.dumps(data)
         auth = {'Authorization': str(self.sysadmin_user.apikey)}
-        res = self.app.post('/api/action/datastore_ts_upsert', params=postparams,
+        res = self.app.post('/api/action/timeseries_upsert', params=postparams,
                             extra_environ=auth, status=409)
         res_dict = json.loads(res.body)
 

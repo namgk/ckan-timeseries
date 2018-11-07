@@ -1,58 +1,50 @@
+# encoding: utf-8
+
 import nose
 
 import ckan.plugins as p
 import ckan.tests.helpers as helpers
 import ckan.tests.factories as factories
 
+from ckanext.timeseries.tests.helpers import DatastoreFunctionalTestBase
+
 assert_equals = nose.tools.assert_equals
 assert_raises = nose.tools.assert_raises
 
-DATASTORE_SEARCH = 'datastore_ts_search'
-DATASTORE_CREATE = 'datastore_ts_create'
-DATASTORE_DELETE = 'datastore_ts_delete'
 
-class TestInterfaces(object):
-    @classmethod
-    def setup_class(cls):
-        p.load('timeseries')
-        p.load('sample_datastore_ts_plugin')
+class TestInterfaces(DatastoreFunctionalTestBase):
+    _load_plugins = (
+        u'timeseries',
+        u'sample_timeseries_plugin')
 
-    @classmethod
-    def teardown_class(cls):
-        p.unload('sample_datastore_ts_plugin')
-        p.unload('timeseries')
-
-    def setup(self):
-        helpers.reset_db()
-
-    def test_datastore_search_can_create_custom_filters(self):
+    def test_timeseries_search_can_create_custom_filters(self):
         records = [
             {'age': 20}, {'age': 30}, {'age': 40}
         ]
         resource = self._create_datastore_resource(records)
         filters = {'age_between': [25, 35]}
 
-        result = helpers.call_action(DATASTORE_SEARCH,
+        result = helpers.call_action('timeseries_search',
                                      resource_id=resource['id'],
                                      filters=filters)
 
         assert result['total'] == 1, result
         assert result['records'][0]['age'] == 30, result
 
-    def test_datastore_search_filters_sent_arent_modified(self):
+    def test_timeseries_search_filters_sent_arent_modified(self):
         records = [
             {'age': 20}, {'age': 30}, {'age': 40}
         ]
         resource = self._create_datastore_resource(records)
         filters = {'age_between': [25, 35]}
 
-        result = helpers.call_action(DATASTORE_SEARCH,
+        result = helpers.call_action('timeseries_search',
                                      resource_id=resource['id'],
                                      filters=filters.copy())
 
         assert_equals(result['filters'], filters)
 
-    def test_datastore_search_custom_filters_have_the_correct_operator_precedence(self):
+    def test_timeseries_search_custom_filters_have_the_correct_operator_precedence(self):
         '''
         We're testing that the WHERE clause becomes:
             (age < 50 OR age > 60) AND age = 30
@@ -68,7 +60,7 @@ class TestInterfaces(object):
             'age': 30
         }
 
-        result = helpers.call_action(DATASTORE_SEARCH,
+        result = helpers.call_action('timeseries_search',
                                      resource_id=resource['id'],
                                      filters=filters)
 
@@ -76,7 +68,7 @@ class TestInterfaces(object):
         assert result['records'][0]['age'] == 30, result
         assert_equals(result['filters'], filters)
 
-    def test_datastore_search_insecure_filter(self):
+    def test_timeseries_search_insecure_filter(self):
         records = [
             {'age': 20}, {'age': 30}, {'age': 40}
         ]
@@ -88,10 +80,10 @@ class TestInterfaces(object):
         }
 
         assert_raises(p.toolkit.ValidationError,
-                      helpers.call_action, DATASTORE_SEARCH,
+                      helpers.call_action, 'timeseries_search',
                       resource_id=resource['id'], filters=filters)
 
-        result = helpers.call_action(DATASTORE_SEARCH,
+        result = helpers.call_action('timeseries_search',
                                      resource_id=resource['id'])
 
         assert result['total'] == 3, result
@@ -103,12 +95,12 @@ class TestInterfaces(object):
         resource = self._create_datastore_resource(records)
         filters = {'age_between': [25, 35]}
 
-        helpers.call_action(DATASTORE_DELETE,
+        helpers.call_action('datastore_delete',
                             resource_id=resource['id'],
                             force=True,
                             filters=filters)
 
-        result = helpers.call_action(DATASTORE_SEARCH,
+        result = helpers.call_action('timeseries_search',
                                      resource_id=resource['id'])
 
         new_records_ages = [r['age'] for r in result['records']]
@@ -131,12 +123,12 @@ class TestInterfaces(object):
             'age': 30
         }
 
-        helpers.call_action(DATASTORE_DELETE,
+        helpers.call_action('datastore_delete',
                             resource_id=resource['id'],
                             force=True,
                             filters=filters)
 
-        result = helpers.call_action(DATASTORE_SEARCH,
+        result = helpers.call_action('timeseries_search',
                                      resource_id=resource['id'])
 
         new_records_ages = [r['age'] for r in result['records']]
@@ -156,11 +148,11 @@ class TestInterfaces(object):
         }
 
         assert_raises(p.toolkit.ValidationError,
-                      helpers.call_action, DATASTORE_DELETE,
+                      helpers.call_action, 'datastore_delete',
                       resource_id=resource['id'], force=True,
                       filters=filters)
 
-        result = helpers.call_action(DATASTORE_SEARCH,
+        result = helpers.call_action('timeseries_search',
                                      resource_id=resource['id'])
 
         assert result['total'] == 3, result
@@ -175,6 +167,6 @@ class TestInterfaces(object):
             'records': records
         }
 
-        helpers.call_action(DATASTORE_CREATE, **data)
+        helpers.call_action('timeseries_create', **data)
 
         return resource

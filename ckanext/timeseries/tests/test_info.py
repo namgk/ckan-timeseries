@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 import json
 import nose
 import pprint
@@ -9,9 +11,10 @@ import ckan.plugins as p
 import ckan.lib.create_test_data as ctd
 import ckan.model as model
 from ckan.tests.legacy import is_datastore_supported
+from ckan.lib import helpers as template_helpers
 
-import ckanext.timeseries.db as db
-from ckanext.timeseries.tests.helpers import extract, rebuild_all_dbs
+import ckanext.timeseries.backend.postgres as db
+from ckanext.timeseries.tests.helpers import extract, DatastoreFunctionalTestBase
 
 import ckan.tests.helpers as helpers
 import ckan.tests.factories as factories
@@ -20,21 +23,7 @@ assert_equals = nose.tools.assert_equals
 assert_raises = nose.tools.assert_raises
 
 
-class TestDatastoreInfo(object):
-    @classmethod
-    def setup_class(cls):
-        if not is_datastore_supported():
-            raise nose.SkipTest("Datastore not supported")
-        plugin = p.load('timeseries')
-        if plugin.legacy_mode:
-            # make sure we undo adding the plugin
-            p.unload('timeseries')
-            raise nose.SkipTest("Info is not supported in legacy mode")
-
-    @classmethod
-    def teardown_class(cls):
-        p.unload('timeseries')
-        helpers.reset_db()
+class TestDatastoreInfo(DatastoreFunctionalTestBase):
 
     def test_info_success(self):
         resource = factories.Resource()
@@ -46,7 +35,7 @@ class TestDatastoreInfo(object):
                 {'from': 'Brazil', 'to': 'Italy', 'num': 22}
             ],
         }
-        result = helpers.call_action('datastore_create', **data)
+        result = helpers.call_action('timeseries_create', **data)
 
         info = helpers.call_action('datastore_info', id=resource['id'])
 
@@ -55,3 +44,33 @@ class TestDatastoreInfo(object):
         assert info['schema']['to'] == 'text'
         assert info['schema']['from'] == 'text'
         assert info['schema']['num'] == 'number', info['schema']
+
+    def test_api_info(self):
+        dataset = factories.Dataset()
+        resource = factories.Resource(
+            id='588dfa82-760c-45a2-b78a-e3bc314a4a9b',
+            package_id=dataset['id'], datastore_active=True)
+
+        # the 'API info' is seen on the resource_read page, a snippet loaded by
+        # javascript via data_api_button.html
+        url = template_helpers.url_for(
+            controller='api', action='snippet', ver=1,
+            snippet_path='api_info.html', resource_id=resource['id'])
+
+        app = self._get_test_app()
+        page = app.get(url, status=200)
+
+        # check we built all the urls ok
+        expected_urls = (
+            'http://test.ckan.net/api/3/action/timeseries_create',
+            'http://test.ckan.net/api/3/action/timeseries_upsert',
+            '<code>http://test.ckan.net/api/3/action/timeseries_search',
+            'http://test.ckan.net/api/3/action/timeseries_search_sql',
+            'http://test.ckan.net/api/3/action/timeseries_search?resource_id=588dfa82-760c-45a2-b78a-e3bc314a4a9b&amp;limit=5',
+            'http://test.ckan.net/api/3/action/timeseries_search?q=jones&amp;resource_id=588dfa82-760c-45a2-b78a-e3bc314a4a9b',
+            'http://test.ckan.net/api/3/action/timeseries_search_sql?sql=SELECT * from &#34;588dfa82-760c-45a2-b78a-e3bc314a4a9b&#34; WHERE title LIKE &#39;jones&#39;',
+            "url: 'http://test.ckan.net/api/3/action/timeseries_search'",
+            "http://test.ckan.net/api/3/action/timeseries_search?resource_id=588dfa82-760c-45a2-b78a-e3bc314a4a9b&amp;limit=5&amp;q=title:jones",
+        )
+        for url in expected_urls:
+            assert url in page, url

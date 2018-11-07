@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 import ckan.plugins as p
 
 import ckanext.timeseries.interfaces as interfaces
@@ -15,7 +17,7 @@ class SampleTimeseriesPlugin(p.SingletonPlugin):
 
         return data_dict
 
-    def datastore_search(self, context, data_dict, column_names, query_dict):
+    def timeseries_search(self, context, data_dict, column_names, query_dict):
         query_dict['where'] += self._where(data_dict)
         return query_dict
 
